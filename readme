@@ -1,0 +1,5 @@
+1.It needs libmemcached 0.17 and above, old libmemcached release will break the code.
+2.If you use the python whose version is < 2.5, you should modify the Py_ssize_t definition.
+3.It is adviced to set the MEMCACHED_MAX_BUFFER macro to 16392 in memcached.h while compiling the libmemcached. You can tune that value for best performance.
+4.Append and the Prepend API is supported by memcached whose version is >  1.2.4
+ 
