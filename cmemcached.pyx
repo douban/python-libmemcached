@@ -1,10 +1,10 @@
 __author__    = "hongqn <hongqn@gmail.com> subdragon <subdragon@gmail.com>"
-__version__   = "0.13"
+__version__   = "0.13.1"
 __copyright__ = "Copyright (C) 2008 douban.com"
 __license__   = "Apache License 2.0"
 
 cdef extern from "Python.h":
-	ctypedef Py_ssize_t
+	ctypedef int Py_ssize_t
 	int PyString_AsStringAndSize(object obj, char **s, Py_ssize_t *len) except -1
 	object PyString_FromStringAndSize(char * v, Py_ssize_t len)
 	char *PyString_AsString(object obj) except NULL

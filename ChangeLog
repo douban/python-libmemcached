@@ -1,2 +1,5 @@
 0.13 Tue Mar 25 22:46:42 CST 2008
 	* Frist public version
+
+0.13.1 Mon Mar 31 15:19:36 CST 2008
+	* Fix a build error on some platforms (patch provided by xieyanbo)
