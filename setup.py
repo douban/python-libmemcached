@@ -4,7 +4,7 @@ from setuptools import setup, Extension
 
 setup(
         name = "python-libmemcached",
-		version = "0.13.1",
+		version = "0.13.2",
 		description="python memcached client wrapped on libmemcached",
 		maintainer="subdragon",
 		maintainer_email="subdragon@gmail.com",

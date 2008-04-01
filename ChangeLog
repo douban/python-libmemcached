@@ -3,3 +3,8 @@
 
 0.13.1 Mon Mar 31 15:19:36 CST 2008
 	* Fix a build error on some platforms (patch provided by xieyanbo)
+
+0.13.2 Wed Apr  2 00:56:12 CST 2008
+	* Fix a flag initialization bug (thanks to yu.peng) (for libmemcached <=
+	0.17)
+

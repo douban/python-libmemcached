@@ -1,5 +1,5 @@
 __author__    = "hongqn <hongqn@gmail.com> subdragon <subdragon@gmail.com>"
-__version__   = "0.13.1"
+__version__   = "0.13.2"
 __copyright__ = "Copyright (C) 2008 douban.com"
 __license__   = "Apache License 2.0"
 
@@ -343,6 +343,7 @@ cdef class Client:
 		if key_len > 250:
 			return None
 
+		flags = 0
 		c_val = memcached_get(self.mc, c_key, key_len, &bytes, &flags, &rc)
 
 		if c_val:
@@ -366,6 +367,7 @@ cdef class Client:
 		if key_len > MEMCACHED_MAX_KEY:
 			return None
 
+		flags = 0
 		c_val = memcached_get(self.mc, c_key, key_len, &bytes, &flags, &rc)
 
 		if c_val:
@@ -408,6 +410,7 @@ cdef class Client:
 
 		result = {}
 
+		flags = 0
 		return_value= memcached_fetch(self.mc, return_key, &return_key_length,
 				&bytes, &flags, &rc)
 		while return_value != NULL:
@@ -415,6 +418,7 @@ cdef class Client:
 			key = PyString_FromStringAndSize(return_key, return_key_length)
 			result[key] = val
 			free(return_value)
+			flags = 0
 			return_value= memcached_fetch(self.mc, return_key, &return_key_length,
 				&bytes, &flags, &rc)
 
@@ -452,6 +456,7 @@ cdef class Client:
 
 		result = {} 
 
+		flags = 0
 		return_value= memcached_fetch(self.mc, return_key, &return_key_length,
 				&bytes, &flags, &rc)
 		while return_value != NULL:
@@ -459,6 +464,7 @@ cdef class Client:
 			key = PyString_FromStringAndSize(return_key, return_key_length)
 			result[key] = val
 			free(return_value)
+			flags = 0
 			return_value= memcached_fetch(self.mc, return_key, &return_key_length,
 				&bytes, &flags, &rc)
 
