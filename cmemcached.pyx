@@ -20,7 +20,7 @@ cdef extern from "stdint.h":
 	ctypedef unsigned int uint32_t
 	ctypedef unsigned long long int uint64_t
 
-cdef extern from "memcached.h":
+cdef extern from "libmemcached/memcached.h":
 	ctypedef enum memcached_return: 
 		MEMCACHED_SUCCESS
 		MEMCACHED_FAILURE
