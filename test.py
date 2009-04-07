@@ -67,6 +67,21 @@ class TestCmemcached(unittest.TestCase):
 		print result
 		self.assertEqual(result, "I Do")
 
+	def testIncr(self):
+		self.mc.set("incr", 1)
+		ret = self.mc.incr("incr", 1)
+		self.assertEqual(ret, 2)
+		ret = self.mc.incr("incr", 2)
+		self.assertEqual(ret, 4)
+		
+	def testDecr(self):
+		self.mc.set("decr", 10)
+		ret = self.mc.decr("decr", 1)
+		self.assertEqual(ret, 9)
+		ret = self.mc.decr("decr", 2)
+		self.assertEqual(ret, 7)
+			
+
 if __name__ == '__main__':
 	unittest.main()
 
