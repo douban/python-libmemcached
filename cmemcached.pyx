@@ -21,7 +21,7 @@ cdef extern from "stdint.h":
     ctypedef unsigned long long int uint64_t
 
 cdef extern from "libmemcached/memcached.h":
-    ctypedef enum memcached_return: 
+    ctypedef enum memcached_return:
         MEMCACHED_SUCCESS
         MEMCACHED_FAILURE
         MEMCACHED_HOST_LOOKUP_FAILURE
@@ -96,6 +96,9 @@ cdef extern from "libmemcached/memcached.h":
     struct memcached_st:
         pass
 
+    struct memcached_result_st:
+        pass
+
     struct memcached_server_st:
         pass
 
@@ -105,49 +108,78 @@ cdef extern from "libmemcached/memcached.h":
             size_t *value_length,
             uint32_t *flags,
             memcached_return *error)
-    memcached_return memcached_set(memcached_st *ptr, char *key, size_t key_length, 
-                               char *value, size_t value_length, 
+    memcached_return memcached_set(memcached_st *ptr, char *key, size_t key_length,
+                               char *value, size_t value_length,
                                time_t expiration,
                                uint32_t  flags)
+    memcached_return memcached_add(memcached_st *ptr, char *key, size_t key_length,
+                               char *value, size_t value_length,
+                               time_t expiration,
+                               uint32_t  flags)
+    memcached_return memcached_replace(memcached_st *ptr, char *key, size_t key_length,
+                               char *value, size_t value_length,
+                               time_t expiration,
+                               uint32_t  flags)
+    memcached_return memcached_cas(memcached_st *ptr, char *key, size_t key_length,
+                               char *value, size_t value_length,
+                               time_t expiration,
+                               uint32_t flags,
+                               uint64_t cas)
     memcached_server_st *memcached_servers_parse(char *server_strings)
     memcached_return memcached_server_push(memcached_st *ptr, memcached_server_st *list)
-    memcached_return memcached_increment(memcached_st *ptr, 
+    memcached_return memcached_increment(memcached_st *ptr,
             char *key, size_t key_length,
             uint32_t offset,
             uint64_t *value)
-    memcached_return memcached_decrement(memcached_st *ptr, 
+    memcached_return memcached_decrement(memcached_st *ptr,
             char *key, size_t key_length,
             uint32_t offset,
             uint64_t *value)
     memcached_return memcached_delete(memcached_st *ptr, char *key, size_t key_length,
             time_t expiration)
-    memcached_return memcached_mget(memcached_st *ptr, 
-                                char **keys, size_t *key_length, 
+    memcached_return memcached_mget(memcached_st *ptr,
+                                char **keys, size_t *key_length,
                                 unsigned int number_of_keys)
-    char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length, 
-                      size_t *value_length, uint32_t *flags, 
+    memcached_result_st *memcached_fetch_result(memcached_st *ptr,
+                      memcached_result_st *result,
                       memcached_return *error)
+    char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length,
+                      size_t *value_length, uint32_t *flags,
+                      memcached_return *error)
+    uint64_t memcached_behavior_get(memcached_st *ptr, memcached_behavior flag)
     memcached_return memcached_behavior_set(memcached_st *ptr, memcached_behavior flag, uint64_t data)
     # notice: the old behavior_set API (before libmemcached 0.17) quote: Incompatible change in memcached_behavior_set() api. We now use a uint64_t, instead of a pointer.
     # memcached_return memcached_behavior_set(memcached_st *ptr, memcached_behavior flag, void *data)
     void memcached_server_list_free(memcached_server_st *ptr)
-    memcached_return memcached_append(memcached_st *ptr, 
+    memcached_return memcached_append(memcached_st *ptr,
                                   char *key, size_t key_length,
-                                  char *value, size_t value_length, 
+                                  char *value, size_t value_length,
                                   time_t expiration,
                                   uint32_t flags)
-    memcached_return memcached_prepend(memcached_st *ptr, 
+    memcached_return memcached_prepend(memcached_st *ptr,
                                    char *key, size_t key_length,
-                                   char *value, size_t value_length, 
+                                   char *value, size_t value_length,
                                    time_t expiration,
                                    uint32_t flags)
+    memcached_result_st *memcached_result_create(memcached_st *ptr,
+            memcached_result_st *result)
+    void memcached_result_free(memcached_result_st *result)
+    char *memcached_result_key_value(memcached_result_st *result)
+    size_t memcached_result_key_length(memcached_result_st *result)
+    char *memcached_result_value(memcached_result_st *ptr)
+    size_t memcached_result_length(memcached_result_st *ptr)
+    uint32_t memcached_result_flags(memcached_result_st *result)
+    uint64_t memcached_result_cas(memcached_result_st *result)
+
+
 
 
 #-----------------------------------------
 
 from cPickle import dumps, loads
-from string import join 
+from string import join
 from time import strftime
+from UserDict import DictMixin
 
 class Error(Exception):
     pass
@@ -194,13 +226,46 @@ cdef object _restore(char *c_val, size_t size, uint32_t flags):
     return val
 
 
+behavior_names = {
+        'no_block': MEMCACHED_BEHAVIOR_NO_BLOCK,
+        'tcp_nodelay': MEMCACHED_BEHAVIOR_TCP_NODELAY,
+        'hash': MEMCACHED_BEHAVIOR_HASH,
+        'ketama': MEMCACHED_BEHAVIOR_KETAMA,
+        'socket_send_size': MEMCACHED_BEHAVIOR_SOCKET_SEND_SIZE,
+        'socket_recv_size': MEMCACHED_BEHAVIOR_SOCKET_RECV_SIZE,
+        'cache_lookups': MEMCACHED_BEHAVIOR_CACHE_LOOKUPS,
+        'support_cas': MEMCACHED_BEHAVIOR_SUPPORT_CAS,
+        'poll_timeout': MEMCACHED_BEHAVIOR_POLL_TIMEOUT,
+        'distribution': MEMCACHED_BEHAVIOR_DISTRIBUTION,
+        'buffer_requests': MEMCACHED_BEHAVIOR_BUFFER_REQUESTS,
+        'sort_hosts': MEMCACHED_BEHAVIOR_SORT_HOSTS,
+        'verify_key': MEMCACHED_BEHAVIOR_VERIFY_KEY,
+        'connect_timeout': MEMCACHED_BEHAVIOR_CONNECT_TIMEOUT,
+        }
+
+
+class _BehaviorDict(DictMixin, object):
+    def __init__(self, client):
+        self.__client = client
+
+    def __getitem__(self, key):
+        return self.__client.get_behavior(key)
+
+    def keys(self):
+        return behavior_names.keys()
+
+
 cdef class Client:
     cdef memcached_st *mc
     cdef int debug
     cdef object log
     cdef int log_threshold
+    cdef readonly object behaviors
+    cdef int __support_cas
 
-    def __new__(self, servers, int debug=0, log=None, int log_threshold=100000):
+    def __new__(self,
+            servers, int debug=0, log=None, int log_threshold=100000,
+            behaviors={}):
         """
         Create a new Client object with the given list of servers.
         """
@@ -219,7 +284,7 @@ cdef class Client:
 
         server_string = ','.join(servers)
 
-        server_mc = memcached_servers_parse(server_string) 
+        server_mc = memcached_servers_parse(server_string)
         retval = memcached_server_push(self.mc, server_mc)
         memcached_server_list_free(server_mc)
 
@@ -234,6 +299,17 @@ cdef class Client:
         memcached_behavior_set(self.mc, MEMCACHED_BEHAVIOR_HASH, set)
         distribution = MEMCACHED_DISTRIBUTION_CONSISTENT
         memcached_behavior_set(self.mc, MEMCACHED_BEHAVIOR_DISTRIBUTION, distribution)
+        # Only set behaviors at creation time,
+        # since later changes are in some cases ignored.
+        for k in behaviors:
+            memcached_behavior_set(self.mc,
+                    behavior_names[k], behaviors[k])
+
+        self.behaviors = _BehaviorDict(self)
+        self.__support_cas = self.behaviors['support_cas'] == 1
+
+    def get_behavior(self, key):
+        return memcached_behavior_get(self.mc, behavior_names[key])
 
     def add_server(self, servers):
         """
@@ -243,15 +319,30 @@ cdef class Client:
         cdef memcached_server_st *server_mc
 
         server_string = ','.join(servers)
-        server_mc = memcached_servers_parse(server_string) 
+        server_mc = memcached_servers_parse(server_string)
         retval = memcached_server_push(self.mc, server_mc)
         memcached_server_list_free(server_mc)
 
 
     def __dealloc__(self):
         memcached_free(self.mc)
-    
+        self.mc = NULL
+
+    def replace(self, key, val, time_t time=0):
+        return self._set('replace', key, val, time)
+
+    def add(self, key, val, time_t time=0):
+        return self._set('add', key, val, time)
+
     def set(self, key, val, time_t time=0):
+        return self._set('set', key, val, time)
+
+    def cas(self, key, val, cas, time_t time=0):
+        if not self.__support_cas:
+            raise RuntimeError('You did not enable support_cas')
+        return self._set('cas', key, val, time, cas)
+
+    def _set(self, cmd, key, val, time_t time=0, cas=0):
         cdef Py_ssize_t key_len, bytes
         cdef char *c_key, *c_val
         cdef uint32_t flags
@@ -267,11 +358,24 @@ cdef class Client:
         PyString_AsStringAndSize(val, &c_val, &bytes)
 
         if self.log is not None and bytes >= self.log_threshold:
-            self.log.write("[%s] cmemcached: set %d bytes to %r\n" % (
-                strftime("%Y-%m-%d %H:%M:%S"), bytes, key))
+            self.log.write("[%s] cmemcached: %s %d bytes to %r\n" % (
+                strftime("%Y-%m-%d %H:%M:%S"), cmd, bytes, key))
             self.log.flush()
 
-        retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
+        if cmd == 'replace':
+            retval = memcached_replace(
+                    self.mc, c_key, key_len, c_val, bytes, time, flags)
+        elif cmd == 'add':
+            retval = memcached_add(
+                    self.mc, c_key, key_len, c_val, bytes, time, flags)
+        elif cmd == 'set':
+            retval = memcached_set(
+                    self.mc, c_key, key_len, c_val, bytes, time, flags)
+        elif cmd == 'cas':
+            retval = memcached_cas(
+                    self.mc, c_key, key_len, c_val, bytes, time, flags, cas)
+        else:
+            assert False
 
         return (retval == 0)
 
@@ -378,20 +482,19 @@ cdef class Client:
 
         return val
 
-    def get_multi(self, keys):
+    def get_multi(self, keys, with_cas=False):
         cdef char **ckeys
         cdef Py_ssize_t *ckey_lens
 
         cdef memcached_return rc
-        cdef uint32_t flags
 
-        cdef Py_ssize_t key_len
         cdef int i, nkeys, valid_nkeys, index
-        cdef char return_key[MEMCACHED_MAX_KEY]
-        cdef size_t return_key_length
-        cdef char *return_value
-        cdef size_t bytes
 
+        cdef memcached_result_st mc_result
+        cdef memcached_result_st *mc_result_ptr
+
+        if with_cas and not self.__support_cas:
+            raise RuntimeError('You did not enable support_cas')
 
         nkeys = len(keys)
         ckeys = <char **>malloc(sizeof(char *) * nkeys)
@@ -405,68 +508,34 @@ cdef class Client:
 
         valid_nkeys = index
 
-
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
 
         result = {}
 
-        flags = 0
-        return_value= memcached_fetch(self.mc, return_key, &return_key_length,
-                &bytes, &flags, &rc)
-        while return_value != NULL:
-            val = _restore(<char *>return_value, bytes, flags)
-            key = PyString_FromStringAndSize(return_key, return_key_length)
-            result[key] = val
-            free(return_value)
-            flags = 0
-            return_value= memcached_fetch(self.mc, return_key, &return_key_length,
-                &bytes, &flags, &rc)
+        mc_result_ptr = memcached_result_create(self.mc, &mc_result)
+        while True:
+            mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
+            if mc_result_ptr == NULL:
+                break
+            val = _restore(memcached_result_value(mc_result_ptr),
+                    memcached_result_length(mc_result_ptr),
+                    memcached_result_flags(mc_result_ptr))
+            key = PyString_FromStringAndSize(memcached_result_key_value(mc_result_ptr),
+                    memcached_result_key_length(mc_result_ptr))
+            if with_cas:
+                cas = memcached_result_cas(mc_result_ptr)
+                result[key] = val, cas
+            else:
+                result[key] = val
 
+        memcached_result_free(&mc_result)
         free(ckeys)
         free(ckey_lens)
         return result
 
-    def get_list(self, keys):
-        cdef char **ckeys
-        cdef Py_ssize_t *ckey_lens
-
-        cdef memcached_return rc
-        cdef uint32_t flags
-
-        cdef Py_ssize_t key_len
-        cdef int i, nkeys, valid_nkeys, index
-        cdef char return_key[MEMCACHED_MAX_KEY]
-        cdef size_t return_key_length
-        cdef char *return_value
-        cdef size_t bytes
-
+    def get_list(self, keys, with_cas=False):
+        result = self.get_multi(keys, with_cas=with_cas)
         nkeys = len(keys)
-        ckeys = <char **>malloc(sizeof(char *) * nkeys)
-        ckey_lens = <Py_ssize_t *>malloc(sizeof(Py_ssize_t) * nkeys)
-
-        index = 0
-        for i from 0 <= i < nkeys:
-            PyString_AsStringAndSize(keys[i], &(ckeys[index]), &(ckey_lens[index]))
-            if ckey_lens[index] > 0 and ckey_lens[index] <= 250:
-                index = index + 1
-
-        valid_nkeys = index
-
-        rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
-
-        result = {} 
-
-        flags = 0
-        return_value= memcached_fetch(self.mc, return_key, &return_key_length,
-                &bytes, &flags, &rc)
-        while return_value != NULL:
-            val = _restore(<char *>return_value, bytes, flags)
-            key = PyString_FromStringAndSize(return_key, return_key_length)
-            result[key] = val
-            free(return_value)
-            flags = 0
-            return_value= memcached_fetch(self.mc, return_key, &return_key_length,
-                &bytes, &flags, &rc)
 
         l_result = []
 
@@ -476,9 +545,10 @@ cdef class Client:
             else:
                 l_result.append(None)
 
-        free(ckeys)
-        free(ckey_lens)
         return l_result
+
+    def gets(self, key):
+        return self.get_list([key], with_cas=True)[0]
 
 
     def incr(self, key, int val=1):

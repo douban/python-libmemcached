@@ -4,10 +4,9 @@ import pickle
 
 class TestCmemcached(unittest.TestCase):
 
-	def setUp(self):
-		self.mc = cmemcached.Client(["127.0.0.1:11211"])
-		#self.mc = cmemcached.Client(["127.0.0.1:11211","127.0.0.1:11212", "127.0.0.1:11213", "127.0.0.1:11214", "127.0.0.1:11215"])
-		
+	def setUp(self, with_cas=0):
+		self.mc = cmemcached.Client(["127.0.0.1:11211"], behaviors={'support_cas': with_cas})
+
 	def testSetAndGet(self):
 		self.mc.set("num12345", 12345)
 		self.assertEqual(self.mc.get("num12345"), 12345)
@@ -30,7 +29,7 @@ class TestCmemcached(unittest.TestCase):
 		self.mc.set("c", "valueC")
 		result = self.mc.get_multi(["a", "b", "c", "", "hello world"])
 		self.assertEqual(result, {'a':'valueA', 'b':'valueB', 'c':'valueC'})
-	
+
 	def testBigGetMulti(self):
 		count = 10
 		keys = ['key%d' % i for i in xrange(count)]
@@ -53,18 +52,14 @@ class TestCmemcached(unittest.TestCase):
 		self.mc.delete("a")
 		self.mc.set("a", "I ")
 		ret = self.mc.append("a", "Do")
-		print ret
 		result = self.mc.get("a")
-		print result
 		self.assertEqual(result, "I Do")
-		
+
 	def testPrepend(self):
 		self.mc.delete("a")
 		self.mc.set("a", "Do")
 		ret = self.mc.prepend("a", "I ")
-		print ret
 		result = self.mc.get("a")
-		print result
 		self.assertEqual(result, "I Do")
 
 	def testIncr(self):
@@ -73,14 +68,44 @@ class TestCmemcached(unittest.TestCase):
 		self.assertEqual(ret, 2)
 		ret = self.mc.incr("incr", 2)
 		self.assertEqual(ret, 4)
-		
+
 	def testDecr(self):
 		self.mc.set("decr", 10)
 		ret = self.mc.decr("decr", 1)
 		self.assertEqual(ret, 9)
 		ret = self.mc.decr("decr", 2)
 		self.assertEqual(ret, 7)
-			
+
+	def testBehaviors(self):
+		mc2 = cmemcached.Client(["127.0.0.1:11211"])
+		self.assertEqual(mc2.behaviors['support_cas'], 0)
+		mc2 = cmemcached.Client(["127.0.0.1:11211"],
+				behaviors={'support_cas': 1})
+		self.assertEqual(mc2.behaviors['support_cas'], 1)
+		mc2 = cmemcached.Client(["127.0.0.1:11211"],
+				behaviors={'support_cas': 0})
+		self.assertEqual(mc2.behaviors['support_cas'], 0)
+
+
+class TestCmemcachedCas(TestCmemcached):
+	"""
+	Run the tests again, but with cas support on the default connection.
+	"""
+
+	def setUp(self):
+		super(TestCmemcachedCas, self).setUp(with_cas=1)
+		self.mc_cas = self.mc
+
+	def testCas(self):
+		self.mc_cas.set('miredo', 'alamos')
+		(res, cas), = self.mc_cas.get_list(['miredo'], with_cas=True)
+		r2, c2 = self.mc_cas.gets('miredo')
+		self.assertEqual((res, cas), (r2, c2))
+		self.assertEqual(res, 'alamos')
+		self.assertFalse(self.mc_cas.cas('miredo', 'monobot', 0))
+		self.assertEqual(self.mc_cas.get('miredo'), 'alamos')
+		self.assertTrue(self.mc_cas.cas('miredo', 'oulipo', cas))
+		self.assertEqual(self.mc_cas.get('miredo'), 'oulipo')
 
 if __name__ == '__main__':
 	unittest.main()
