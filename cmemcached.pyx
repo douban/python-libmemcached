@@ -104,6 +104,7 @@ cdef extern from "libmemcached/memcached.h":
 
     memcached_st *memcached_create(memcached_st *ptr)
     void memcached_free(memcached_st *ptr)
+    void memcached_quit(memcached_st *ptr)
     char *memcached_get(memcached_st *ptr, char *key, size_t key_length,
             size_t *value_length,
             uint32_t *flags,
@@ -188,6 +189,7 @@ cdef int _FLAG_PICKLE, _FLAG_INTEGER, _FLAG_LONG
 _FLAG_PICKLE = 1<<0
 _FLAG_INTEGER = 1<<1
 _FLAG_LONG = 1<<2
+_FLAG_BOOL = 1<<3
 
 cdef object _prepare_value(object val, uint32_t *flags):
     cdef uint32_t f
@@ -196,6 +198,9 @@ cdef object _prepare_value(object val, uint32_t *flags):
     if isinstance(val, basestring):
         flags[0] = 0
         pass
+    elif isinstance(val, bool):
+        f = f | _FLAG_BOOL
+        val = str(int(val))
     elif isinstance(val, int):
         f = f | _FLAG_INTEGER
         val = str(val)
@@ -216,6 +221,8 @@ cdef object _restore(char *c_val, size_t size, uint32_t flags):
 
     if flags == 0:
         pass
+    elif flags & _FLAG_BOOL:
+        val = bool(int(val))
     elif flags & _FLAG_INTEGER:
         val = int(val)
     elif flags & _FLAG_LONG:
@@ -578,3 +585,6 @@ cdef class Client:
         if rc != MEMCACHED_SUCCESS:
             return None
         return new_value
+
+    def disconnect_all(self):
+        memcached_quit(self.mc)
