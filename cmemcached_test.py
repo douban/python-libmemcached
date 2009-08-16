@@ -2,10 +2,12 @@ import cmemcached
 import unittest
 import pickle
 
+MEMCACHED_HOSTS = ['localhost:11211']
+
 class TestCmemcached(unittest.TestCase):
 
     def setUp(self, with_cas=0):
-        self.mc = cmemcached.Client(["127.0.0.1:11211"], behaviors={'support_cas': with_cas})
+        self.mc = cmemcached.Client(MEMCACHED_HOSTS, behaviors={'support_cas': with_cas})
 
     def testSetAndGet(self):
         self.mc.set("num12345", 12345)
