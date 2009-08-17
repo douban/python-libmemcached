@@ -78,13 +78,22 @@ class TestCmemcached(unittest.TestCase):
         ret = self.mc.decr("decr", 2)
         self.assertEqual(ret, 7)
 
-    def testBook(self):
+    def testBool(self):
         self.mc.set("bool", True)
         value = self.mc.get("bool")
         self.assertEqual(value, True)
         self.mc.set("bool_", False)
         value = self.mc.get("bool_")
         self.assertEqual(value, False)
+
+    def testFlush(self):
+        self.mc.set("a", True)
+        self.mc.set("b", "hello world")
+        self.mc.flush()
+        value = self.mc.get("a")
+        self.assertEqual(value, None)
+        value = self.mc.get("b")
+        self.assertEqual(value, None)
 
     def testBehaviors(self):
         mc2 = cmemcached.Client(["127.0.0.1:11211"])

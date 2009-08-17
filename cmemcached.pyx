@@ -171,6 +171,7 @@ cdef extern from "libmemcached/memcached.h":
     size_t memcached_result_length(memcached_result_st *ptr)
     uint32_t memcached_result_flags(memcached_result_st *result)
     uint64_t memcached_result_cas(memcached_result_st *result)
+    memcached_return memcached_flush(memcached_st *ptr, time_t expiration)
 
 
 
@@ -359,7 +360,7 @@ cdef class Client:
 
         # memcached do not support the key whose length is bigger than MEMCACHED_MAX_KEY
         if key_len >= MEMCACHED_MAX_KEY:
-            return 0
+            return False
 
         val = _prepare_value(val, &flags)
         PyString_AsStringAndSize(val, &c_val, &bytes)
@@ -396,7 +397,7 @@ cdef class Client:
 
         # memcached do not support the key whose length is bigger than MEMCACHED_MAX_KEY
         if key_len >= MEMCACHED_MAX_KEY:
-            return 0
+            return False
 
         val = _prepare_value(val, &flags)
         PyString_AsStringAndSize(val, &c_val, &bytes)
@@ -588,3 +589,8 @@ cdef class Client:
 
     def disconnect_all(self):
         memcached_quit(self.mc)
+
+    def flush(self, time_t expiration = 0):
+        cdef memcached_return rc
+        rc = memcached_flush(self.mc, expiration)
+        return (rc == 0)
