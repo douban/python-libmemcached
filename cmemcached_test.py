@@ -2,7 +2,7 @@ import cmemcached
 import unittest
 import pickle
 
-MEMCACHED_HOSTS = ['localhost:11211']
+MEMCACHED_HOSTS = ['localhost:9130']
 
 class TestCmemcached(unittest.TestCase):
 
@@ -89,7 +89,7 @@ class TestCmemcached(unittest.TestCase):
     def testFlush(self):
         self.mc.set("a", True)
         self.mc.set("b", "hello world")
-        self.mc.flush()
+        self.mc.flush_all()
         value = self.mc.get("a")
         self.assertEqual(value, None)
         value = self.mc.get("b")

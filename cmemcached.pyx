@@ -403,6 +403,7 @@ cdef class Client:
         PyString_AsStringAndSize(val, &c_val, &bytes)
 
         retval = memcached_append(self.mc, c_key, key_len, c_val, bytes, time, flags)
+        print retval
 
         return (retval == 0)
 
@@ -590,7 +591,7 @@ cdef class Client:
     def disconnect_all(self):
         memcached_quit(self.mc)
 
-    def flush(self, time_t expiration = 0):
+    def flush_all(self, time_t expiration = 0):
         cdef memcached_return rc
         rc = memcached_flush(self.mc, expiration)
         return (rc == 0)
