@@ -72,6 +72,9 @@ cdef extern from "libmemcached/memcached.h":
         MEMCACHED_BEHAVIOR_SORT_HOSTS
         MEMCACHED_BEHAVIOR_VERIFY_KEY
         MEMCACHED_BEHAVIOR_CONNECT_TIMEOUT
+        MEMCACHED_BEHAVIOR_RETRY_TIMEOUT
+        MEMCACHED_BEHAVIOR_KETAMA_WEIGHTED
+        MEMCACHED_BEHAVIOR_KETAMA_HASH
 
     ctypedef enum memcached_server_distribution:
         MEMCACHED_DISTRIBUTION_MODULA
@@ -172,7 +175,7 @@ cdef extern from "libmemcached/memcached.h":
     uint32_t memcached_result_flags(memcached_result_st *result)
     uint64_t memcached_result_cas(memcached_result_st *result)
     memcached_return memcached_flush(memcached_st *ptr, time_t expiration)
-
+    uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
 
 
 
@@ -249,6 +252,7 @@ behavior_names = {
         'sort_hosts': MEMCACHED_BEHAVIOR_SORT_HOSTS,
         'verify_key': MEMCACHED_BEHAVIOR_VERIFY_KEY,
         'connect_timeout': MEMCACHED_BEHAVIOR_CONNECT_TIMEOUT,
+        'ketama_hash': MEMCACHED_BEHAVIOR_KETAMA_HASH,
         }
 
 
@@ -319,6 +323,9 @@ cdef class Client:
     def get_behavior(self, key):
         return memcached_behavior_get(self.mc, behavior_names[key])
 
+    def set_behavior_raw(self, key, value):
+        return memcached_behavior_set(self.mc, behavior_names[key], value)
+
     def add_server(self, servers):
         """
         Add new server list
@@ -331,6 +338,11 @@ cdef class Client:
         retval = memcached_server_push(self.mc, server_mc)
         memcached_server_list_free(server_mc)
 
+    def get_host_by_key(self, key):
+        cdef char *c_key
+        cdef Py_ssize_t key_len
+        PyString_AsStringAndSize(key, &c_key, &key_len)
+        return memcached_generate_hash(self.mc, c_key, key_len)
 
     def __dealloc__(self):
         memcached_free(self.mc)
