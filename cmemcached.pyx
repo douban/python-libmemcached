@@ -275,7 +275,7 @@ cdef class Client:
     cdef readonly object behaviors
     cdef int __support_cas
 
-    def __new__(self,
+    def __cinit__(self,
             servers, int debug=0, log=None, int log_threshold=100000,
             behaviors={}):
         """
