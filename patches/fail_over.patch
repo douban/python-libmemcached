@@ -1,0 +1,166 @@
+diff -rNu libmemcached-0.40/libmemcached/connect.c libmemcached-0.40-r1/libmemcached/connect.c
+--- libmemcached-0.40/libmemcached/connect.c	2010-04-23 07:42:03.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/connect.c	2010-06-11 10:43:23.000000000 +0800
+@@ -319,15 +319,15 @@
+           if (ptr->root->flags.no_block == false)
+             timeout= -1;
+ 
+-          size_t loop_max= 5;
+-          while (--loop_max)
++          int loop_max= 5;
++          while (--loop_max > 0)
+           {
+             int error= poll(fds, 1, timeout);
+ 
+             switch (error)
+             {
+             case 1:
+-              loop_max= 1;
++              loop_max = 0;
+               break;
+             case 0:
+               continue;
+@@ -352,11 +352,16 @@
+ 
+                 (void)close(ptr->fd);
+                 ptr->fd= -1;
++                loop_max = 0;
+ 
+                 break;
+               }
+             }
+           }
++          // timeout
++          if (loop_max == 0){
++            ptr->fd = -1;
++          }
+         }
+         else if (errno == EISCONN) /* we are connected :-) */
+         {
+@@ -397,15 +402,6 @@
+   {
+     WATCHPOINT_STRING("Never got a good file descriptor");
+ 
+-    /* Failed to connect. schedule next retry */
+-    if (ptr->root->retry_timeout)
+-    {
+-      struct timeval next_time;
+-
+-      if (gettimeofday(&next_time, NULL) == 0)
+-        ptr->next_retry= next_time.tv_sec + ptr->root->retry_timeout;
+-    }
+-
+     if (ptr->cached_errno == 0)
+       return MEMCACHED_TIMEOUT;
+ 
+@@ -453,22 +449,6 @@
+     }
+   }
+ 
+-  // If we are over the counter failure, we just fail. Reject host only
+-  // works if you have a set number of failures.
+-  if (ptr->root->server_failure_limit && ptr->server_failure_counter >= ptr->root->server_failure_limit)
+-  {
+-    set_last_disconnected_host(ptr);
+-
+-    // @todo fix this by fixing behavior to no longer make use of
+-    // memcached_st
+-    if (_is_auto_eject_host(ptr->root))
+-    {
+-      run_distribution((memcached_st *)ptr->root);
+-    }
+-
+-    return MEMCACHED_SERVER_MARKED_DEAD;
+-  }
+-
+   /* We need to clean up the multi startup piece */
+   switch (ptr->type)
+   {
+@@ -488,14 +468,26 @@
+     WATCHPOINT_ASSERT(0);
+   }
+ 
+-  if (rc == MEMCACHED_SUCCESS)
+-  {
+-    ptr->server_failure_counter= 0;
+-    ptr->next_retry= 0;
+-  }
+-  else
++  if (rc != MEMCACHED_SUCCESS)
+   {
+     ptr->server_failure_counter++;
++    
++    /* Failed to connect. schedule next retry */
++    if (ptr->root->retry_timeout && ptr->next_retry || ptr->root->server_failure_limit 
++            && ptr->server_failure_counter >= ptr->root->server_failure_limit)
++    {
++      struct timeval next_time;
++
++      if (gettimeofday(&next_time, NULL) == 0)
++        ptr->next_retry= next_time.tv_sec + ptr->root->retry_timeout;
++      
++      // @todo fix this by fixing behavior to no longer make use of
++      // memcached_st
++      if (_is_auto_eject_host(ptr->root))
++      {
++        run_distribution((memcached_st *)ptr->root);
++      }
++    }
+ 
+     set_last_disconnected_host(ptr);
+   }
+diff -rNu libmemcached-0.40/libmemcached/io.c libmemcached-0.40-r1/libmemcached/io.c
+--- libmemcached-0.40/libmemcached/io.c	2010-04-23 07:19:48.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/io.c	2010-06-11 10:44:13.000000000 +0800
+@@ -345,6 +345,7 @@
+   }
+ 
+   ptr->server_failure_counter= 0;
++  ptr->next_retry = 0;
+   *nread = (ssize_t)(buffer_ptr - (char*)buffer);
+   return MEMCACHED_SUCCESS;
+ }
+@@ -627,7 +628,7 @@
+           memcached_return_t rc;
+           rc= io_wait(ptr, MEM_WRITE);
+ 
+-          if (rc == MEMCACHED_SUCCESS || rc == MEMCACHED_TIMEOUT)
++          if (rc == MEMCACHED_SUCCESS)
+             continue;
+ 
+           memcached_quit_server(ptr, true);
+diff -rNu libmemcached-0.40/libmemcached/quit.c libmemcached-0.40-r1/libmemcached/quit.c
+--- libmemcached-0.40/libmemcached/quit.c	2010-04-22 07:31:31.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/quit.c	2010-06-11 10:42:35.000000000 +0800
+@@ -60,6 +60,7 @@
+        * sent to the server.
+        */
+       ptr->server_failure_counter= 0;
++      ptr->next_retry = 0;
+     }
+     memcached_io_close(ptr);
+   }
+@@ -74,6 +75,23 @@
+   if (io_death)
+   {
+     ptr->server_failure_counter++;
++    
++    /* Failed to connect. schedule next retry */
++    if (ptr->root->retry_timeout && ptr->next_retry || ptr->root->server_failure_limit 
++            && ptr->server_failure_counter >= ptr->root->server_failure_limit)
++    {
++      struct timeval next_time;
++
++      if (gettimeofday(&next_time, NULL) == 0)
++        ptr->next_retry= next_time.tv_sec + ptr->root->retry_timeout;
++      
++      // @todo fix this by fixing behavior to no longer make use of
++      // memcached_st
++      if (_is_auto_eject_host(ptr->root))
++      {
++        run_distribution((memcached_st *)ptr->root);
++      }
++    }
+     set_last_disconnected_host(ptr);
+   }
+ }

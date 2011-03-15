@@ -1,0 +1,31 @@
+--- libmemcached-0.40/libmemcached/behavior.c	2010-04-07 01:58:47.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/behavior.c	2010-12-05 23:56:39.000000000 +0800
+@@ -70,7 +70,7 @@
+     break;
+   case MEMCACHED_BEHAVIOR_BUFFER_REQUESTS:
+     ptr->flags.buffer_requests= set_flag(data);
+-    memcached_quit(ptr);
++    memcached_flush_buffers(ptr);
+     break;
+   case MEMCACHED_BEHAVIOR_USE_UDP:
+     if (memcached_server_count(ptr))
+--- libmemcached-0.40/libmemcached/storage.c	2010-04-22 07:38:40.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/storage.c	2010-12-06 00:05:20.000000000 +0800
+@@ -162,7 +162,7 @@
+         { .length= 2, .buffer= "\r\n" }
+       }; 
+ 
+-      if (ptr->flags.buffer_requests && verb == SET_OP)
++      if (ptr->flags.buffer_requests)
+       {
+         to_write= false;
+       }
+@@ -476,7 +476,7 @@
+   if (cas)
+     request.message.header.request.cas= htonll(cas);
+ 
+-  flush= (bool) ((server->root->flags.buffer_requests && verb == SET_OP) ? 0 : 1);
++  flush= (bool) ((server->root->flags.buffer_requests) ? 0 : 1);
+ 
+   if (server->root->flags.use_udp && ! flush)
+   {

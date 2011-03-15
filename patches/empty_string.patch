@@ -1,0 +1,13 @@
+diff -rNu libmemcached-0.40/libmemcached/string.c libmemcached-0.40-r1/libmemcached/string.c
+--- libmemcached-0.40/libmemcached/string.c	2010-04-06 00:42:18.000000000 +0800
++++ libmemcached-0.40-r1/libmemcached/string.c	2010-06-09 17:58:09.000000000 +0800
+@@ -131,9 +131,6 @@
+ {
+   char *c_ptr;
+ 
+-  if (memcached_string_length(string) == 0)
+-    return NULL;
+-
+   c_ptr= libmemcached_malloc(string->root, (memcached_string_length(string)+1) * sizeof(char));
+ 
+   if (c_ptr == NULL)

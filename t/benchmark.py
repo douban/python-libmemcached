@@ -4,6 +4,7 @@ import time
 import random
 import string
 import sys
+import traceback
 
 
 global total_time
@@ -18,7 +19,7 @@ def run_test(func, name):
         print "failed or not supported"
         global options
         if options.verbose:
-            import traceback; traceback.print_exc()
+            traceback.print_exc()
     else:
         end_time = time.time() 
         global total_time
@@ -27,7 +28,7 @@ def run_test(func, name):
 
 
 class BigObject(object):
-    def __init__(self, letter='1', size=100000):
+    def __init__(self, letter='1', size=10000):
         self.object = letter * size
 
     def __eq__(self, other):
@@ -54,8 +55,7 @@ class Benchmark(object):
 
     def init_server(self):
         #self.mc = self.module.Client([self.options.server_address])
-        self.mc = self.module.Client(["fili:11211"], comp_threshold=256, comp_method='quicklz')
-        self.mc.set_behavior(self.module.BEHAVIOR_BINARY_PROTOCOL, 1)
+        self.mc = self.module.Client(["127.0.0.1:11211","127.0.0.1:11212", "127.0.0.1:11213", "127.0.0.1:11214", "127.0.0.1:11215"])
         self.mc.set('bench_key', "E" * 50)
 
         num_tests = self.options.num_tests
@@ -270,11 +270,15 @@ def main():
     global options
     options, args = parser.parse_args()
 
+
+    options.verbose=1
+    print "verbose", options.verbose
+
     global total_time
     total_time = 0
 
+    print "Benchmarking cmemcached..."
     import cmemcached
-    print "Benchmarking cmemcached...", cmemcached.__file__ 
     Benchmark(cmemcached, options)
 
 

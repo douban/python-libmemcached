@@ -1,10 +1,18 @@
-0.13 Tue Mar 25 22:46:42 CST 2008
-	* Frist public version
+0.40 Mon Mar 15 13:36:00 CST 2011
+    * update to libmemcached-0.40
+	* support large item (>=1M), auto splitting and merging
+	* set_multi, prepend_multi, delete_multi
+	* nonblock by default
+	* fail-over patch for libmemcached-0.40
+	* empty string patch for libmemcached-0.40
+	* configable item compression and decompression when needed
+	* use marshal prior to cPickle when serializing.
 
-0.13.1 Mon Mar 31 15:19:36 CST 2008
-	* Fix a build error on some platforms (patch provided by xieyanbo)
+0.23 Mon Aug 25 16:57:59 CST 2008
+	* Support the libmemcached 0.23 version
+	* server rehash when one server is down
+	* weighted ketama
+	* cas support and fix incr and decr bug
 
-0.13.2 Wed Apr  2 00:56:12 CST 2008
-	* Fix a flag initialization bug (thanks to yu.peng) (for libmemcached <=
-	0.17)
-
+0.14 Sun Mar 16 22:03:10 CST 2008
+	* Frist douban version
