@@ -4,16 +4,15 @@ from setuptools import setup, Extension
 
 setup(
         name = "python-libmemcached",
-		version = "0.40",
-		description="python memcached client wrapped on libmemcached",
-		maintainer="davies",
-		maintainer_email="davies.liu@gmail.com",
-
-        requires = ['pyrex'],
+        version = "0.40",
+        description="python memcached client wrapped on libmemcached",
+        maintainer="davies",
+        maintainer_email="davies.liu@gmail.com",
+        install_requires = ['pyrex'],
         ext_modules=[Extension('cmemcached_imp', 
             ['cmemcached_imp.pyx', 'split_mc.c'],
             libraries=['memcached'],
-			#extra_link_args=['--no-undefined', '-Wl,-rpath=/usr/local/lib'],
+            #extra_link_args=['--no-undefined', '-Wl,-rpath=/usr/local/lib'],
             #include_dirs = ["/usr/local/include"],
             #library_dirs = ["/usr/local/lib"],
         )],

@@ -2,11 +2,11 @@
 
 import time
 import random
-import string
 import sys
 
 
-global total_time
+options = None
+total_time = None
 
 def run_test(func, name):
     sys.stdout.write(name + ': ')
@@ -20,14 +20,14 @@ def run_test(func, name):
         if options.verbose:
             import traceback; traceback.print_exc()
     else:
-        end_time = time.time() 
+        end_time = time.time()
         global total_time
         total_time += end_time - start_time
         print "%f seconds" % (end_time - start_time)
 
 
 class BigObject(object):
-    def __init__(self, letter='1', size=100000):
+    def __init__(self, letter='1', size=10000):
         self.object = letter * size
 
     def __eq__(self, other):
@@ -54,14 +54,13 @@ class Benchmark(object):
 
     def init_server(self):
         #self.mc = self.module.Client([self.options.server_address])
-        self.mc = self.module.Client(["fili:11211"], comp_threshold=256, comp_method='quicklz')
+        self.mc = self.module.Client(["faramir:11217"])
         self.mc.set_behavior(self.module.BEHAVIOR_BINARY_PROTOCOL, 1)
         self.mc.set('bench_key', "E" * 50)
 
         num_tests = self.options.num_tests
         self.keys = ['key%d' % i for i in xrange(num_tests)]
         self.values = ['value%d' % i for i in xrange(num_tests)]
-        import random
         self.random_keys = ['key%d' % random.randint(0, num_tests) for i in xrange(num_tests * 3)]
 
     def test_set(self):
@@ -204,7 +203,7 @@ class Benchmark(object):
 
         for key, value in pairs:
             self.mc.delete(key)
-        
+
     def test_get_big_object(self):
         pairs = [('bkey%d' % i, BigObject('x')) for i in xrange(100)]
         for key, value in pairs:
@@ -212,7 +211,7 @@ class Benchmark(object):
 
         get = self.mc.get
         expected_values = [BigObject('x') for i in xrange(100)]
-        
+
         def test():
             for i in xrange(100):
                 result = get('bkey%d' % i)
@@ -245,12 +244,12 @@ class Benchmark(object):
 
         keys = self.keys
         expected_result = self.values
-        
+
         def test():
             result = self.mc.get_list(keys)
             assert result == expected_result
         run_test(test, 'test_get_list')
-        
+
         for key in self.keys:
             self.mc.delete(key)
 
@@ -273,8 +272,8 @@ def main():
     global total_time
     total_time = 0
 
+    print "Benchmarking cmemcached..."
     import cmemcached
-    print "Benchmarking cmemcached...", cmemcached.__file__ 
     Benchmark(cmemcached, options)
 
 

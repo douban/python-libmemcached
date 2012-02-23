@@ -158,7 +158,30 @@ cdef extern from "libmemcached/memcached.h":
         pass
     
     struct memcached_stat_st:
-        pass
+        uint32_t connection_structures
+        uint32_t curr_connections
+        uint32_t curr_items
+        uint32_t pid
+        uint32_t pointer_size
+        uint32_t rusage_system_microseconds
+        uint32_t rusage_system_seconds
+        uint32_t rusage_user_microseconds
+        uint32_t rusage_user_seconds
+        uint32_t threads
+        uint32_t time
+        uint32_t total_connections
+        uint32_t total_items
+        uint32_t uptime
+        uint64_t bytes
+        uint64_t bytes_read
+        uint64_t bytes_written
+        uint64_t cmd_get
+        uint64_t cmd_set
+        uint64_t evictions
+        uint64_t get_hits
+        uint64_t get_misses
+        uint64_t limit_maxbytes
+        char version[24]
 
     size_t memcached_string_length(memcached_string_st* str)
     char* memcached_string_value(memcached_string_st* str)
@@ -180,6 +203,14 @@ cdef extern from "libmemcached/memcached.h":
                                char *value, size_t value_length, time_t expiration, uint32_t  flags)
     memcached_server_st *memcached_servers_parse(char *server_strings)
     memcached_return memcached_server_push(memcached_st *ptr, memcached_server_st *list)
+    void memcached_server_list_free(memcached_server_st *ptr)
+    memcached_return memcached_server_add_udp(memcached_st *ptr, char *hostname, int port)
+    memcached_return memcached_server_add_unix_socket(memcached_st *ptr, char *filename)
+    memcached_return memcached_server_add(memcached_st *ptr, char *hostname, int port)
+    memcached_return memcached_server_add_udp_with_weight(memcached_st *ptr, char *hostname, int port, uint32_t weight)
+    memcached_return memcached_server_add_unix_socket_with_weight(memcached_st *ptr, char *filename, uint32_t weight)
+    memcached_return memcached_server_add_with_weight(memcached_st *ptr, char *hostname, int port, uint32_t weight)
+    
     memcached_return memcached_increment(memcached_st *ptr, 
             char *key, size_t key_length,
             uint32_t offset,
@@ -198,7 +229,6 @@ cdef extern from "libmemcached/memcached.h":
                       memcached_return *error)
     memcached_return memcached_behavior_set(memcached_st *ptr, memcached_behavior flag, uint64_t data)
     uint64_t memcached_behavior_get(memcached_st *ptr, unsigned int flag)
-    void memcached_server_list_free(memcached_server_st *ptr)
     memcached_return memcached_append(memcached_st *ptr, 
                                   char *key, size_t key_length,
                                   char *value, size_t value_length, 
@@ -230,9 +260,11 @@ cdef extern from "libmemcached/memcached.h":
             time_t expiration,
             uint32_t flags)
     memcached_stat_st *memcached_stat(memcached_st *ptr, char *args, memcached_return *error)
+    void memcached_stat_free(memcached_st *ptr, memcached_stat_st *stat)
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
     char *memcached_strerror(memcached_st *ptr, memcached_return rc)
     memcached_return memcached_flush_buffers(memcached_st *mem)
+
 
 cdef extern from "split_mc.h":
     cdef enum:
@@ -403,18 +435,29 @@ cdef class Client:
             raise MemoryError
         self.servers = []
 
-    def add_server(self, servers):
+    def add_server(self, addrs):
         """
         Add new server list
         """
-        cdef memcached_return retval
-        cdef memcached_server_st *server_mc
-
-        server_string = ','.join(servers)
-        server_mc = memcached_servers_parse(server_string) 
-        retval = memcached_server_push(self.mc, server_mc)
-        memcached_server_list_free(server_mc)
-        self.servers += servers
+        cdef int port
+        for addr in addrs:
+            ps = addr.split(':')
+            if addr.startswith('/'):
+                path = ps[0]
+                if len(ps) > 1:
+                    memcached_server_add_unix_socket_with_weight(self.mc, path, int(ps[1]))
+                else:
+                    memcached_server_add_unix_socket(self.mc, path)
+            else:
+                host = ps[0]
+                port = 11211
+                if len(ps) > 1:
+                    port = int(ps[1])
+                if len(ps) > 2:
+                    memcached_server_add_with_weight(self.mc, host, port, int(ps[2]))
+                else:
+                    memcached_server_add(self.mc, host, port)
+        self.servers += addrs
 
     def get_host_by_key(self, key):
         cdef char *c_key
@@ -503,7 +546,7 @@ cdef class Client:
         cdef memcached_return retval
 
         if type(val) != type(''):
-            sys.stderr.write("[cmemcached]%s only support string: %s" % (cmd, key))
+            sys.stderr.write("[cmemcached]%s only support string: %s" % (cmd, keys))
             return 0 
         PyString_AsStringAndSize(val, &c_val, &bytes)
        
@@ -563,12 +606,12 @@ cdef class Client:
         PyString_AsStringAndSize(val, &c_val, &bytes)
 
         if bytes > CHUNK_SIZE and self.do_split != 0:
-            _save = PyEval_SaveThread();
+            _save = PyEval_SaveThread()
             retval_int = split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
             PyEval_RestoreThread(_save)
             return (retval_int == 0)
 
-        _save = PyEval_SaveThread();
+        _save = PyEval_SaveThread()
         retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
         PyEval_RestoreThread(_save)
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
@@ -606,7 +649,7 @@ cdef class Client:
         if key_len >= MEMCACHED_MAX_KEY:
             return 0
 
-        _save = PyEval_SaveThread();
+        _save = PyEval_SaveThread()
         retval = memcached_delete(self.mc, c_key, key_len, time)
         PyEval_RestoreThread(_save)
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
@@ -654,7 +697,7 @@ cdef class Client:
                 return None, 0
 
         flags = 0
-        _save = PyEval_SaveThread();
+        _save = PyEval_SaveThread()
         c_val = memcached_get(self.mc, c_key, key_len, &bytes, &flags, &rc)
         PyEval_RestoreThread(_save)
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND, 
@@ -706,7 +749,7 @@ cdef class Client:
         valid_nkeys = index
 
 
-        _save = PyEval_SaveThread();
+        _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
 
@@ -716,7 +759,7 @@ cdef class Client:
         flags = 0
         while 1:
             flags = 0
-            _save = PyEval_SaveThread();
+            _save = PyEval_SaveThread()
             return_value= memcached_fetch(self.mc, return_key, &return_key_length,
                 &bytes, &flags, &rc)
             PyEval_RestoreThread(_save)
@@ -751,7 +794,7 @@ cdef class Client:
         if key_len >= MEMCACHED_MAX_KEY:
             return
         
-        _save = PyEval_SaveThread();
+        _save = PyEval_SaveThread()
         if val > 0:
             rc=memcached_increment(self.mc, c_key, key_len, val, &new_value)
         else:
@@ -764,3 +807,48 @@ cdef class Client:
         
     def decr(self, key, int val=1):
         return self.incr(key, -val)
+
+    def stats(self):
+        cdef memcached_stat_st *stat
+        cdef memcached_return rc
+
+        stat = memcached_stat(self.mc, NULL, &rc)
+        if stat == NULL:
+            return {}
+
+        stats = {}
+        for i in range(len(self.servers)):
+            st = {}
+            st['pid'] = stat[i].pid
+            st['uptime'] = stat[i].uptime
+            st['time'] = stat[i].time
+            st['pointer_size'] = stat[i].pointer_size
+            st['threads'] = stat[i].threads
+            st['version'] = stat[i].version
+
+            st['rusage_user'] = stat[i].rusage_system_seconds + stat[i].rusage_system_microseconds / 1e6
+            st['rusage_system'] = stat[i].rusage_user_seconds + stat[i].rusage_user_microseconds / 1e6
+
+            st['curr_items'] = stat[i].curr_items
+            st['total_items'] = stat[i].total_items
+
+            st['curr_connections'] = stat[i].pid
+            st['total_connections'] = stat[i].pid
+            st['connection_structures'] = stat[i].pid
+
+            st['cmd_get'] = stat[i].cmd_get
+            st['cmd_set'] = stat[i].cmd_set
+            st['get_hits'] = stat[i].get_hits
+            st['get_misses'] = stat[i].get_misses
+            st['evictions'] = stat[i].evictions
+
+            st['bytes'] = stat[i].bytes
+            st['bytes_read'] = stat[i].bytes_read
+            st['bytes_written'] = stat[i].bytes_written
+            st['limit_maxbytes'] = stat[i].limit_maxbytes
+            
+            stats[self.servers[i]] = st
+
+        memcached_stat_free(self.mc, stat)
+
+        return stats

@@ -6,6 +6,7 @@ import marshal
 import time
 
 TEST_SERVER = "localhost"
+TEST_UNIX_SOCKET = "/tmp/memcached.sock"
 
 class BigObject(object):
     def __init__(self, letter='1', size=2000000):
@@ -188,7 +189,6 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(value, '')
 
     def testGetHost(self):
-        self.mc.set("str", '')
         host = self.mc.get_host_by_key("str")
         self.assertEqual(host, TEST_SERVER)
 
@@ -231,6 +231,40 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get('testkey'), None)
         self.assertNotEqual(self.mc.get_last_error(), 1)
 
+    def test_stats(self):
+        s = self.mc.stats()
+        self.assertEqual(TEST_SERVER in s, True)
+        st = s[TEST_SERVER]
+        st_keys = sorted([
+          "pid",
+          "uptime",
+          "time",
+          "version",
+          "pointer_size",
+          "rusage_user",
+          "rusage_system",
+          "curr_items",
+          "total_items",
+          "bytes",
+          "curr_connections",
+          "total_connections",
+          "connection_structures",
+          "cmd_get",
+          "cmd_set",
+          "get_hits",
+          "get_misses",
+          "evictions",
+          "bytes_read",
+          "bytes_written",
+          "limit_maxbytes",
+          "threads",
+        ])
+        self.assertEqual(sorted(st.keys()), st_keys)
+        
+        mc=cmemcached.Client(["localhost:11999", TEST_SERVER])
+        s = mc.stats()
+        self.assertEqual(len(s), 2)
+
     #def test_gets_multi(self):
     #    keys=["hello1", "hello2", "hello3"]
     #    values=["vhello1", "vhello2", "vhello3"]
@@ -256,6 +290,18 @@ class TestCmemcached(unittest.TestCase):
     #        self.assertEqual(self.mc.get(keys[x]) , 'cas')
 
 
+class TestUnixSocketCmemcached(TestCmemcached):
+    
+    def setUp(self):
+        self.mc=cmemcached.Client([TEST_UNIX_SOCKET], comp_threshold=1024)
+
+    def testGetHost(self):
+        host = self.mc.get_host_by_key("str")
+        self.assertEqual(host, TEST_UNIX_SOCKET)
+
+    def test_stats(self):
+        "not need"    
+
 class TestBinaryCmemcached(TestCmemcached):
 
     def setUp(self):
@@ -264,6 +310,9 @@ class TestBinaryCmemcached(TestCmemcached):
 
     def test_append_multi_performance(self):
         "binary is slow, bug ?"
+
+    def test_stats(self):
+        "not yet support"
 
 if __name__ == '__main__':
     unittest.main()
