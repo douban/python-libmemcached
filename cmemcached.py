@@ -85,3 +85,6 @@ class Client(cmemcached_imp.Client):
     def get_list(self, keys):
         result = self.get_multi(keys)
         return [result.get(key) for key in keys]
+
+    def expire(self, key):
+        return self.touch(key, -1)
