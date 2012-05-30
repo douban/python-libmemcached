@@ -624,6 +624,13 @@ cdef class Client:
         _save = PyEval_SaveThread()
         retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
         PyEval_RestoreThread(_save)
+        
+        if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
+                MEMCACHED_SERVER_TEMPORARILY_DISABLED, 
+                MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
+            sys.stderr.write('[cmemcached]memcached_set: server %s error: %s\n' 
+                    % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
+        
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
     
     def set_multi_raw(self, values, time_t time=0):
@@ -705,24 +712,18 @@ cdef class Client:
         
         self.last_error = 0
 
-        PyString_AsStringAndSize(key, &c_key, &key_len)
-
-        if key_len > MEMCACHED_MAX_KEY:
+        if not self.check_key(key):
             return None, 0
-        
-        #validate key
-        for i from 0 <= i < key_len:
-            if c_key[i] <= 32 and c_key[i] >=0:
-                sys.stderr.write("[cmemcached]get_raw: invalid key(%s)(%d)\n" % (key, i))
-                
-                return None, 0
 
         flags = 0
+        PyString_AsStringAndSize(key, &c_key, &key_len)
+
         _save = PyEval_SaveThread()
         c_val = memcached_get(self.mc, c_key, key_len, &bytes, &flags, &rc)
         PyEval_RestoreThread(_save)
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND, 
-                MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
+                MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED,
+                MEMCACHED_SERVER_TEMPORARILY_DISABLED):
             sys.stderr.write('[cmemcached]memcached_get: server %s error: %s\n' 
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
         
