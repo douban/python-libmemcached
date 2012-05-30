@@ -289,6 +289,12 @@ class TestCmemcached(unittest.TestCase):
     #        self.assertEqual(self.mc.cas(keys[x],'cas2',cas=result[keys[x]][1]) , 0)
     #        self.assertEqual(self.mc.get(keys[x]) , 'cas')
 
+    def test_client_pickable(self):
+        import pickle
+        d = pickle.dumps(self.mc)
+        self.mc = pickle.loads(d)
+        self.test_stats()
+
 
 class TestUnixSocketCmemcached(TestCmemcached):
     

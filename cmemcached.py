@@ -35,11 +35,13 @@ def restore(val, flag):
 class Client(cmemcached_imp.Client):
     "a wraper around cmemcached_imp"
 
-    def __init__(self, servers, do_split=1, comp_threshold=0, *a, **kw):
+    def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, *a, **kw):
         cmemcached_imp.Client.__init__(self)
-        self.add_server(servers)
+        self.servers = servers
         self.do_split = do_split
         self.comp_threshold = comp_threshold
+        self.behaviors = dict(behaviors.items())
+        self.add_server(servers)
         
         self.set_behavior(BEHAVIOR_NO_BLOCK, 1) # nonblock
         self.set_behavior(BEHAVIOR_TCP_NODELAY, 1) # nonblock
@@ -47,7 +49,17 @@ class Client(cmemcached_imp.Client):
         self.set_behavior(BEHAVIOR_CACHE_LOOKUPS, 1)
         self.set_behavior(BEHAVIOR_KETAMA, 1)
         #self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0) # no request buffer
-        
+
+        for k,v in behaviors.items():
+            self.set_behavior(k, v)
+
+    def __reduce__(self):
+        return (Client, (self.servers, self.do_split, self.comp_threshold, self.behaviors))
+
+    def set_behavior(self, k, v):
+        self.behaviors[k] = v
+        return cmemcached_imp.Client.set_behavior(self, k, v)
+
     def set(self, key, val, time=0, compress=True):
         comp = compress and self.comp_threshold or 0
         val, flag = prepare(val, comp)
