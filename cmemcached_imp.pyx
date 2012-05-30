@@ -71,6 +71,12 @@ cdef extern from "libmemcached/memcached.h":
         MEMCACHED_AUTH_PROBLEM
         MEMCACHED_AUTH_FAILURE
         MEMCACHED_AUTH_CONTINUE
+        MEMCACHED_PARSE_ERROR
+        MEMCACHED_PARSE_USER_ERROR
+        MEMCACHED_DEPRECATED
+        MEMCACHED_IN_PROGRESS
+        MEMCACHED_SERVER_TEMPORARILY_DISABLED
+        MEMCACHED_SERVER_MEMORY_ALLOCATION_FAILURE
         MEMCACHED_MAXIMUM_RETURN # Always add new error code before
 
     ctypedef enum memcached_behavior:
@@ -108,6 +114,9 @@ cdef extern from "libmemcached/memcached.h":
         MEMCACHED_BEHAVIOR_CORK
         MEMCACHED_BEHAVIOR_TCP_KEEPALIVE
         MEMCACHED_BEHAVIOR_TCP_KEEPIDLE
+        MEMCACHED_BEHAVIOR_LOAD_FROM_FILE
+        MEMCACHED_BEHAVIOR_REMOVE_FAILED_SERVERS
+        MEMCACHED_BEHAVIOR_DEAD_TIMEOUT
         MEMCACHED_BEHAVIOR_MAX
 
     ctypedef enum memcached_server_distribution:
@@ -116,6 +125,8 @@ cdef extern from "libmemcached/memcached.h":
         MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA
         MEMCACHED_DISTRIBUTION_RANDOM
         MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA_SPY
+        MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED
+        MEMCACHED_DISTRIBUTION_VIRTUAL_BUCKET
         MEMCACHED_DISTRIBUTION_CONSISTENT_MAX
 
     ctypedef enum memcached_hash:
@@ -133,7 +144,6 @@ cdef extern from "libmemcached/memcached.h":
         MEMCACHED_HASH_MAX
 
     ctypedef enum memcached_connection:
-        MEMCACHED_CONNECTION_UNKNOWN
         MEMCACHED_CONNECTION_TCP
         MEMCACHED_CONNECTION_UDP
         MEMCACHED_CONNECTION_UNIX_SOCKET
@@ -318,6 +328,7 @@ cdef object _prepare(object val, uint32_t *flags):
                 val = dumps(val, -1)
                 f = _FLAG_PICKLE
             except Exception, e:
+                sys.stderr.write('pickle failed: %s\n' % e)
                 val = None
 
     flags[0] = f
