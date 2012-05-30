@@ -295,6 +295,18 @@ class TestCmemcached(unittest.TestCase):
         self.mc = pickle.loads(d)
         self.test_stats()
 
+    def test_touch(self):
+        self.mc.set('test', 1)
+        self.assertEqual(self.mc.get('test'), 1)
+        self.assertEqual(self.mc.touch('test', -1), 1)
+        self.assertEqual(self.mc.get('test'), None)
+        
+        self.mc.set('test', 1)
+        self.assertEqual(self.mc.get('test'), 1)
+        self.assertEqual(self.mc.touch('test', 1), 1)
+        time.sleep(1)
+        self.assertEqual(self.mc.get('test'), None)
+
 
 class TestUnixSocketCmemcached(TestCmemcached):
     

@@ -223,7 +223,7 @@ cdef extern from "libmemcached/memcached.h":
             time_t expiration)
     memcached_return memcached_mget(memcached_st *ptr, 
                                 char **keys, size_t *key_length, 
-                                unsigned int number_of_keys)
+                                size_t number_of_keys)
     char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length, 
                       size_t *value_length, uint32_t *flags, 
                       memcached_return *error)
@@ -259,6 +259,8 @@ cdef extern from "libmemcached/memcached.h":
             char *value, size_t value_length,
             time_t expiration,
             uint32_t flags)
+    memcached_return memcached_touch(memcached_st *ptr, char *key, 
+            size_t key_length, time_t expiration)
     memcached_stat_st *memcached_stat(memcached_st *ptr, char *args, memcached_return *error)
     void memcached_stat_free(memcached_st *ptr, memcached_stat_st *stat)
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
@@ -644,14 +646,15 @@ cdef class Client:
         cdef char *c_key
         cdef memcached_return retval
         cdef PyThreadState *_save
+        
+        if not self.check_key(key):
+            return 0 
 
         PyString_AsStringAndSize(key, &c_key, &key_len)
-        if key_len >= MEMCACHED_MAX_KEY:
-            return 0
-
         _save = PyEval_SaveThread()
         retval = memcached_delete(self.mc, c_key, key_len, time)
         PyEval_RestoreThread(_save)
+        
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
 
     def delete_multi(self, keys, time_t time=0):
@@ -672,6 +675,22 @@ cdef class Client:
         self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0)
         
         return retval == MEMCACHED_SUCCESS 
+
+    def touch(self, key, time_t exptime):
+        cdef Py_ssize_t key_len
+        cdef char *c_key
+        cdef memcached_return retval
+        cdef PyThreadState *_save
+
+        if not self.check_key(key):
+            return 0 
+        
+        PyString_AsStringAndSize(key, &c_key, &key_len)
+        _save = PyEval_SaveThread()
+        retval = memcached_touch(self.mc, c_key, key_len, exptime)
+        PyEval_RestoreThread(_save)
+
+        return retval == MEMCACHED_SUCCESS
 
     def get_raw(self, key):
         cdef char *c_key
