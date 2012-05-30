@@ -553,18 +553,15 @@ cdef class Client:
         PyString_AsStringAndSize(val, &c_val, &bytes)
        
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 1)
         for key in keys:
             PyString_AsStringAndSize(key, &c_key, &key_len)
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
             if cmd == 'append':
-                memcached_append(self.mc, c_key, key_len, c_val, bytes, 0, 0)
+                retval = memcached_append(self.mc, c_key, key_len, c_val, bytes, 0, 0)
             elif cmd == 'prepend':
-                memcached_prepend(self.mc, c_key, key_len, c_val, bytes, 0, 0)
-        retval = memcached_flush_buffers(self.mc)
+                retval = memcached_prepend(self.mc, c_key, key_len, c_val, bytes, 0, 0)
         self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0)
         
         return retval == MEMCACHED_SUCCESS
 
@@ -625,7 +622,6 @@ cdef class Client:
         cdef memcached_return retval
         
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 1)
         for key, (val, flags_py) in values.iteritems():
             if not self.check_key(key):
                 continue
@@ -635,10 +631,8 @@ cdef class Client:
             if bytes > CHUNK_SIZE and self.do_split != 0:
                 split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
             else:
-                memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
-        retval = memcached_flush_buffers(self.mc)
+                retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
         self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0)
         return retval == MEMCACHED_SUCCESS
 
     def delete(self, key, time_t time=0):
@@ -664,15 +658,12 @@ cdef class Client:
         cdef memcached_return retval
 
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 1)
         for key in keys:
             PyString_AsStringAndSize(key, &c_key, &key_len)
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
-            memcached_delete(self.mc, c_key, key_len, time)
-        retval = memcached_flush_buffers(self.mc)
+            retval = memcached_delete(self.mc, c_key, key_len, time)
         self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0)
         
         return retval == MEMCACHED_SUCCESS 
 
