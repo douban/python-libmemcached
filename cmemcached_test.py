@@ -332,5 +332,8 @@ class TestBinaryCmemcached(TestCmemcached):
     def test_stats(self):
         "not yet support"
 
+    def test_touch(self):
+        "not yet support"
+
 if __name__ == '__main__':
     unittest.main()
