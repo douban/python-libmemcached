@@ -1,0 +1,14 @@
+--- libmemcached-1.0.8/libmemcached/string.cc	2012-05-13 07:52:47.000000000 +0800
++++ libmemcached-1.0.8-r1/libmemcached/string.cc	2012-05-30 11:23:10.000000000 +0800
+@@ -168,11 +168,6 @@
+ 
+ char *memcached_string_c_copy(memcached_string_st *string)
+ {
+-  if (memcached_string_length(string) == 0)
+-  {
+-    return NULL;
+-  }
+-
+   char *c_ptr= static_cast<char *>(libmemcached_malloc(string->root, (memcached_string_length(string)+1) * sizeof(char)));
+ 
+   if (c_ptr == NULL)
