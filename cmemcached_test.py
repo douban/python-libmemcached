@@ -295,6 +295,25 @@ class TestCmemcached(unittest.TestCase):
         self.mc = pickle.loads(d)
         self.test_stats()
 
+    def test_ketama(self):
+        mc = cmemcached.Client(['localhost', 'myhost:11211', '127.0.0.1:11212', 'myhost:11213'])
+        #for i in range(10):
+        #    k = 'test:%d' % (i*10000)
+        #    print """'%s': '%s',""" % (k, mc.get_host_by_key(k))
+        rs = {
+            'test:10000': 'localhost',
+            'test:20000': '127.0.0.1:11212',
+            'test:30000': '127.0.0.1:11212',
+            'test:40000': '127.0.0.1:11212',
+            'test:50000': '127.0.0.1:11212',
+            'test:60000': 'myhost:11213',
+            'test:70000': '127.0.0.1:11212',
+            'test:80000': '127.0.0.1:11212',
+            'test:90000': '127.0.0.1:11212',
+        }
+        for k in rs:
+            self.assertEqual(mc.get_host_by_key(k), rs[k])
+
 
 class TestUnixSocketCmemcached(TestCmemcached):
     
