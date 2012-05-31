@@ -270,7 +270,7 @@ cdef extern from "libmemcached/memcached.h":
             time_t expiration,
             uint32_t flags)
     memcached_return memcached_touch(memcached_st *ptr, char *key, 
-            size_t key_length, time_t expiration)
+            size_t key_length, int expiration)
     memcached_stat_st *memcached_stat(memcached_st *ptr, char *args, memcached_return *error)
     void memcached_stat_free(memcached_st *ptr, memcached_stat_st *stat)
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
@@ -686,7 +686,7 @@ cdef class Client:
         
         return retval == MEMCACHED_SUCCESS 
 
-    def touch(self, key, time_t exptime):
+    def touch(self, key, int exptime):
         cdef Py_ssize_t key_len
         cdef char *c_key
         cdef memcached_return retval
