@@ -1,0 +1,11 @@
+--- libmemcached-1.0.8/libmemcached/behavior.cc	2012-05-13 07:52:47.000000000 +0800
++++ libmemcached-1.0.8-r1/libmemcached/behavior.cc	2012-05-31 15:43:08.000000000 +0800
+@@ -489,7 +489,7 @@
+ {
+   if (type < MEMCACHED_DISTRIBUTION_CONSISTENT_MAX)
+   {
+-    if (MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED)
++    if (type == MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED)
+     {
+       ptr->ketama.weighted= true;
+     }
