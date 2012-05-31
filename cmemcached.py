@@ -47,8 +47,12 @@ class Client(cmemcached_imp.Client):
         self.set_behavior(BEHAVIOR_TCP_NODELAY, 1) # nonblock
         self.set_behavior(BEHAVIOR_TCP_KEEPALIVE, 1)
         self.set_behavior(BEHAVIOR_CACHE_LOOKUPS, 1)
-        self.set_behavior(BEHAVIOR_KETAMA, 1)
         #self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0) # no request buffer
+        
+        #self.set_behavior(BEHAVIOR_KETAMA, 1)
+        self.set_behavior(BEHAVIOR_HASH, HASH_MD5)
+        self.set_behavior(BEHAVIOR_KETAMA_HASH, HASH_MD5)
+        self.set_behavior(BEHAVIOR_DISTRIBUTION, DIST_CONSISTENT_KETAMA)
 
         for k,v in behaviors.items():
             self.set_behavior(k, v)
