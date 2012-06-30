@@ -1,0 +1,60 @@
+--- libmemcached-1.0.8/libmemcached/touch.cc	2012-05-31 17:59:36.000000000 +0800
++++ libmemcached-1.0.8-r1/libmemcached/touch.cc	2012-05-31 18:01:09.000000000 +0800
+@@ -40,10 +40,10 @@
+ 
+ static memcached_return_t ascii_touch(memcached_server_write_instance_st instance,
+                                       const char *key, size_t key_length,
+-                                      time_t expiration)
++                                      int expiration)
+ {
+   char expiration_buffer[MEMCACHED_MAXIMUM_INTEGER_DISPLAY_LENGTH +1];
+-  int expiration_buffer_length= snprintf(expiration_buffer, sizeof(expiration_buffer), " %llu", (unsigned long long)expiration);
++  int expiration_buffer_length= snprintf(expiration_buffer, sizeof(expiration_buffer), " %d", expiration);
+   if (size_t(expiration_buffer_length) >= sizeof(expiration_buffer) or expiration_buffer_length < 0)
+   {
+     return memcached_set_error(*instance, MEMCACHED_MEMORY_ALLOCATION_FAILURE, MEMCACHED_AT, 
+@@ -72,7 +72,7 @@
+ 
+ static memcached_return_t binary_touch(memcached_server_write_instance_st instance,
+                                        const char *key, size_t key_length,
+-                                       time_t expiration)
++                                       int expiration)
+ {
+   protocol_binary_request_touch request= {}; //{.bytes= {0}};
+   request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+@@ -103,7 +103,7 @@
+ 
+ memcached_return_t memcached_touch(memcached_st *ptr,
+                                    const char *key, size_t key_length,
+-                                   time_t expiration)
++                                   int expiration)
+ {
+   return memcached_touch_by_key(ptr, key, key_length, key, key_length, expiration);
+ }
+@@ -111,7 +111,7 @@
+ memcached_return_t memcached_touch_by_key(memcached_st *ptr,
+                                           const char *group_key, size_t group_key_length,
+                                           const char *key, size_t key_length,
+-                                          time_t expiration)
++                                          int expiration)
+ {
+   LIBMEMCACHED_MEMCACHED_TOUCH_START();
+ 
+--- libmemcached-1.0.8/libmemcached-1.0/touch.h	2012-05-13 07:52:47.000000000 +0800
++++ libmemcached-1.0.8-r1/libmemcached-1.0/touch.h	2012-05-31 18:02:18.000000000 +0800
+@@ -46,13 +46,13 @@
+ LIBMEMCACHED_API
+ memcached_return_t memcached_touch(memcached_st *ptr,
+                                    const char *key, size_t key_length,
+-                                   time_t expiration);
++                                   int expiration);
+ 
+ LIBMEMCACHED_API
+ memcached_return_t memcached_touch_by_key(memcached_st *ptr,
+                                           const char *group_key, size_t group_key_length,
+                                           const char *key, size_t key_length,
+-                                          time_t expiration);
++                                          int expiration);
+ 
+ #ifdef __cplusplus
+ }
