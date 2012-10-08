@@ -14,6 +14,7 @@ cdef extern from "Python.h":
             pass
     PyThreadState *PyEval_SaveThread()
     void PyEval_RestoreThread(PyThreadState *_save)
+    int PyObject_CheckReadBuffer(object o)
 
 cdef extern from "stdlib.h":
     ctypedef unsigned int size_t
@@ -320,10 +321,17 @@ cdef object _prepare(object val, uint32_t *flags):
         f = _FLAG_INTEGER
         val = str(val)
     else:
-        try:
-            val = marshal.dumps(val, 2)
-            f = _FLAG_MARSHAL
-        except ValueError, e:
+        # marshal treats buffers as strings and cause objects e.g.
+        # numpy.array unrestorable
+        if not PyObject_CheckReadBuffer(val):
+            try:
+                val = marshal.dumps(val, 2)
+                f = _FLAG_MARSHAL
+            except ValueError, e:
+                pass
+
+        if f != _FLAG_MARSHAL:
+            # val is buffer or marshal failed
             try:
                 val = dumps(val, -1)
                 f = _FLAG_PICKLE
