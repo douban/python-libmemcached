@@ -1,7 +1,16 @@
 #!/usr/bin/env python
 
+import os
 from setuptools import setup, Extension
 from Cython.Distutils import build_ext
+
+base_dir = '/Users/CMGS/Documents/Workplace/sources/test/greenify-test/'
+
+options = {}
+if os.environ.get('LIBRARY_DIRS'):
+    options['library_dirs'] = os.environ['LIBRARY_DIRS']
+if os.environ.get('INCLUDE_DIRS'):
+    options['include_dirs'] = os.environ['INCLUDE_DIRS']
 
 setup(
         name = "python-libmemcached",
@@ -11,13 +20,10 @@ setup(
         maintainer_email="davies.liu@gmail.com",
         install_requires = ['cython'],
         cmdclass = {'build_ext': build_ext},
-        ext_modules=[Extension('cmemcached_imp', 
+        ext_modules=[Extension('cmemcached_imp',
             ['cmemcached_imp.pyx', 'split_mc.c'],
             libraries=['memcached'],
-            #extra_link_args=['--no-undefined', '-Wl,-rpath=/usr/local/lib'],
-            #include_dirs = ["/usr/local/include"],
-            #library_dirs = ["/usr/local/lib"],
-        )],
+            **options)],
 
         py_modules=['cmemcached'],
         test_suite="cmemcached_test",
