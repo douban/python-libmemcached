@@ -8,9 +8,9 @@ base_dir = '/Users/CMGS/Documents/Workplace/sources/test/greenify-test/'
 
 options = {}
 if os.environ.get('LIBRARY_DIRS'):
-    options['library_dirs'] = os.environ['LIBRARY_DIRS']
+    options['library_dirs'] = [os.environ['LIBRARY_DIRS']]
 if os.environ.get('INCLUDE_DIRS'):
-    options['include_dirs'] = os.environ['INCLUDE_DIRS']
+    options['include_dirs'] = [os.environ['INCLUDE_DIRS']]
 
 setup(
         name = "python-libmemcached",
