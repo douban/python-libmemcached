@@ -22,6 +22,7 @@ cdef extern from "stdlib.h":
     void *malloc(size_t size)
     void free(void *ptr)
     int atoi (char *STRING)
+    int strlen(char *STRING)
 
 cdef extern from "stdint.h":
     ctypedef unsigned short int uint16_t
@@ -458,7 +459,7 @@ cdef void close_all_mc():
 cdef class Client:
     cdef memcached_st *mc
     cdef object servers
-    cdef int    last_error
+    cdef memcached_return    last_error
 
     def __cinit__(self, *a, **kw):
         """
@@ -508,6 +509,10 @@ cdef class Client:
 
     def get_last_error(self):
         return self.last_error
+
+    def get_last_strerror(self):
+        cdef char *c_str = memcached_strerror(self.mc, self.last_error)
+        return PyString_FromStringAndSize(c_str, strlen(c_str))
 
     def __dealloc__(self):
         self.close()
@@ -736,7 +741,7 @@ cdef class Client:
         cdef char * c_val
         cdef PyThreadState *_save
         
-        self.last_error = 0
+        self.last_error = MEMCACHED_SUCCESS
 
         if not self.check_key(key):
             return None, 0
@@ -805,7 +810,7 @@ cdef class Client:
             self.last_error = rc
             return {}
         
-        self.last_error = 0
+        self.last_error = MEMCACHED_SUCCESS
         result = {}
         chunks_record = []
 
