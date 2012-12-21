@@ -28,6 +28,10 @@ cdef extern from "stdint.h":
     ctypedef unsigned int uint32_t
     ctypedef unsigned long long int uint64_t
 
+cdef extern from "pthread.h":
+    int pthread_atfork(void (*prepare)(), void (*parent)(),
+                          void (*child)())
+
 cdef extern from "libmemcached/memcached.h":
     ctypedef enum memcached_return: 
         MEMCACHED_SUCCESS
@@ -277,7 +281,7 @@ cdef extern from "libmemcached/memcached.h":
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
     char *memcached_strerror(memcached_st *ptr, memcached_return rc)
     memcached_return memcached_flush_buffers(memcached_st *mem)
-
+    void memcached_quit(memcached_st *ptr)
 
 cdef extern from "split_mc.h":
     cdef enum:
@@ -291,11 +295,12 @@ cdef extern from "split_mc.h":
 
 #-----------------------------------------
 
+import sys
 from cPickle import dumps, loads
 import marshal
 from string import join 
 from time import strftime
-import sys
+import weakref
 
 class Error(Exception):
     pass
@@ -442,6 +447,13 @@ BEHAVIOR_CORK                    = PyInt_FromLong(MEMCACHED_BEHAVIOR_CORK)
 BEHAVIOR_TCP_KEEPALIVE           = PyInt_FromLong(MEMCACHED_BEHAVIOR_TCP_KEEPALIVE)
 BEHAVIOR_TCP_KEEPIDLE            = PyInt_FromLong(MEMCACHED_BEHAVIOR_TCP_KEEPIDLE)
 
+__mc_instances = []
+
+cdef void close_all_mc():
+    for r in __mc_instances:
+        mc = r()
+        if mc is not None:
+            mc.close()
 
 cdef class Client:
     cdef memcached_st *mc
@@ -456,6 +468,10 @@ cdef class Client:
         if not self.mc:
             raise MemoryError
         self.servers = []
+        
+        if not __mc_instances:
+            pthread_atfork(close_all_mc, close_all_mc, close_all_mc)
+        __mc_instances.append(weakref.ref(self))
 
     def add_server(self, addrs):
         """
@@ -494,6 +510,7 @@ cdef class Client:
         return self.last_error
 
     def __dealloc__(self):
+        self.close()
         memcached_free(self.mc)
 
     def set_behavior(self, int flag, uint64_t behavior):
@@ -883,3 +900,9 @@ cdef class Client:
         memcached_stat_free(self.mc, stat)
 
         return stats
+
+    def quit(self):
+        memcached_quit(self.mc)
+
+    def close(self):
+        self.quit()
