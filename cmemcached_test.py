@@ -329,21 +329,6 @@ class TestCmemcached(unittest.TestCase):
         for k in rs:
             self.assertEqual(mc.get_host_by_key(k), rs[k])
 
-    def test_ketama(self):
-        mc = cmemcached.Client(['localhost', 'myhost:11211', '127.0.0.1:11212', 'myhost:11213'])
-        rs = {
-            'test:10000': 'myhost:11211',
-            'test:20000': '127.0.0.1:11212',
-            'test:30000': '127.0.0.1:11212',
-            'test:40000': 'myhost:11213',
-            'test:50000': 'localhost',
-            'test:60000': '127.0.0.1:11212',
-            'test:70000': 'myhost:11211',
-            'test:80000': '127.0.0.1:11212',
-            'test:90000': 'localhost',
-        }
-        for k in rs:
-            self.assertEqual(mc.get_host_by_key(k), rs[k])
 
 #class TestUnixSocketCmemcached(TestCmemcached):
 #    
