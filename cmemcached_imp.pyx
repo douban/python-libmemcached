@@ -800,7 +800,12 @@ cdef class Client:
         _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
-
+        
+        if rc != MEMCACHED_SUCCESS:
+            self.last_error = rc
+            return {}
+        
+        self.last_error = 0
         result = {}
         chunks_record = []
 
@@ -812,6 +817,8 @@ cdef class Client:
                 &bytes, &flags, &rc)
             PyEval_RestoreThread(_save)
             if return_value == NULL:
+                if rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND, MEMCACHED_END):
+                    self.last_error = rc
                 break
             key = PyString_FromStringAndSize(return_key, return_key_length)
             if flags & _FLAG_CHUNKED:
