@@ -471,7 +471,7 @@ cdef class Client:
         self.servers = []
         
         if not __mc_instances:
-            pthread_atfork(close_all_mc, close_all_mc, close_all_mc)
+            pthread_atfork(close_all_mc, NULL, NULL)
         __mc_instances.append(weakref.ref(self))
 
     def add_server(self, addrs):
@@ -805,10 +805,6 @@ cdef class Client:
         _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
-        
-        if rc != MEMCACHED_SUCCESS:
-            self.last_error = rc
-            return {}
         
         self.last_error = MEMCACHED_SUCCESS
         result = {}
