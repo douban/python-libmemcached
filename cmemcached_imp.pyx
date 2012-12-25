@@ -470,8 +470,8 @@ cdef class Client:
             raise MemoryError
         self.servers = []
         
-        if not __mc_instances:
-            pthread_atfork(close_all_mc, NULL, NULL)
+        #if not __mc_instances:
+        #    pthread_atfork(close_all_mc, NULL, NULL)
         __mc_instances.append(weakref.ref(self))
 
     def add_server(self, addrs):
