@@ -49,6 +49,12 @@ class TestCmemcached(unittest.TestCase):
 
         self.assertEqual(self.mc.get(key) , value)
 
+    def test_unicode_set_get(self):
+        key = "test_unicode_set_get"
+        value = u"中文"
+        self.assertEqual(self.mc.set(key, value), 1)
+        self.assertEqual(self.mc.get(key), value)
+
     def test_special_key(self):
         key='keke a kid'
         value=1024

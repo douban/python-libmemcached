@@ -318,7 +318,7 @@ cdef object _prepare(object val, uint32_t *flags):
     cdef uint32_t f
     f = 0
 
-    if isinstance(val, basestring):
+    if isinstance(val, str):
         pass
     elif isinstance(val, (bool)):
         f = _FLAG_BOOL
@@ -326,6 +326,9 @@ cdef object _prepare(object val, uint32_t *flags):
     elif isinstance(val, (int,long)):
         f = _FLAG_INTEGER
         val = str(val)
+    elif type(val) is unicode:
+        val = marshal.dumps(val, 2)
+        f = _FLAG_MARSHAL
     else:
         # marshal treats buffers as strings and cause objects e.g.
         # numpy.array unrestorable
