@@ -805,7 +805,10 @@ cdef class Client:
         _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
-        
+        if rc != MEMCACHED_SUCCESS:
+            self.last_error = rc
+            return {}
+
         self.last_error = MEMCACHED_SUCCESS
         result = {}
         chunks_record = []
