@@ -22,11 +22,16 @@ cdef extern from "stdlib.h":
     void *malloc(size_t size)
     void free(void *ptr)
     int atoi (char *STRING)
+    int strlen(char *STRING)
 
 cdef extern from "stdint.h":
     ctypedef unsigned short int uint16_t
     ctypedef unsigned int uint32_t
     ctypedef unsigned long long int uint64_t
+
+cdef extern from "pthread.h":
+    int pthread_atfork(void (*prepare)(), void (*parent)(),
+                          void (*child)())
 
 cdef extern from "libmemcached/memcached.h":
     ctypedef enum memcached_return: 
@@ -277,7 +282,7 @@ cdef extern from "libmemcached/memcached.h":
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
     char *memcached_strerror(memcached_st *ptr, memcached_return rc)
     memcached_return memcached_flush_buffers(memcached_st *mem)
-
+    void memcached_quit(memcached_st *ptr)
 
 cdef extern from "split_mc.h":
     cdef enum:
@@ -291,11 +296,12 @@ cdef extern from "split_mc.h":
 
 #-----------------------------------------
 
+import sys
 from cPickle import dumps, loads
 import marshal
 from string import join 
 from time import strftime
-import sys
+import weakref
 
 class Error(Exception):
     pass
@@ -312,7 +318,7 @@ cdef object _prepare(object val, uint32_t *flags):
     cdef uint32_t f
     f = 0
 
-    if isinstance(val, basestring):
+    if isinstance(val, str):
         pass
     elif isinstance(val, (bool)):
         f = _FLAG_BOOL
@@ -320,6 +326,9 @@ cdef object _prepare(object val, uint32_t *flags):
     elif isinstance(val, (int,long)):
         f = _FLAG_INTEGER
         val = str(val)
+    elif type(val) is unicode:
+        val = marshal.dumps(val, 2)
+        f = _FLAG_MARSHAL
     else:
         # marshal treats buffers as strings and cause objects e.g.
         # numpy.array unrestorable
@@ -442,11 +451,18 @@ BEHAVIOR_CORK                    = PyInt_FromLong(MEMCACHED_BEHAVIOR_CORK)
 BEHAVIOR_TCP_KEEPALIVE           = PyInt_FromLong(MEMCACHED_BEHAVIOR_TCP_KEEPALIVE)
 BEHAVIOR_TCP_KEEPIDLE            = PyInt_FromLong(MEMCACHED_BEHAVIOR_TCP_KEEPIDLE)
 
+__mc_instances = []
+
+cdef void close_all_mc():
+    for r in __mc_instances:
+        mc = r()
+        if mc is not None:
+            mc.close()
 
 cdef class Client:
     cdef memcached_st *mc
     cdef object servers
-    cdef int    last_error
+    cdef memcached_return    last_error
 
     def __cinit__(self, *a, **kw):
         """
@@ -456,6 +472,10 @@ cdef class Client:
         if not self.mc:
             raise MemoryError
         self.servers = []
+        
+        #if not __mc_instances:
+        #    pthread_atfork(close_all_mc, NULL, NULL)
+        __mc_instances.append(weakref.ref(self))
 
     def add_server(self, addrs):
         """
@@ -493,7 +513,12 @@ cdef class Client:
     def get_last_error(self):
         return self.last_error
 
+    def get_last_strerror(self):
+        cdef char *c_str = memcached_strerror(self.mc, self.last_error)
+        return PyString_FromStringAndSize(c_str, strlen(c_str))
+
     def __dealloc__(self):
+        self.close()
         memcached_free(self.mc)
 
     def set_behavior(self, int flag, uint64_t behavior):
@@ -719,7 +744,7 @@ cdef class Client:
         cdef char * c_val
         cdef PyThreadState *_save
         
-        self.last_error = 0
+        self.last_error = MEMCACHED_SUCCESS
 
         if not self.check_key(key):
             return None, 0
@@ -783,7 +808,11 @@ cdef class Client:
         _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
+        if rc != MEMCACHED_SUCCESS:
+            self.last_error = rc
+            return {}
 
+        self.last_error = MEMCACHED_SUCCESS
         result = {}
         chunks_record = []
 
@@ -795,6 +824,8 @@ cdef class Client:
                 &bytes, &flags, &rc)
             PyEval_RestoreThread(_save)
             if return_value == NULL:
+                if rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND, MEMCACHED_END):
+                    self.last_error = rc
                 break
             key = PyString_FromStringAndSize(return_key, return_key_length)
             if flags & _FLAG_CHUNKED:
@@ -883,3 +914,9 @@ cdef class Client:
         memcached_stat_free(self.mc, stat)
 
         return stats
+
+    def quit(self):
+        memcached_quit(self.mc)
+
+    def close(self):
+        self.quit()
