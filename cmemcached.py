@@ -71,19 +71,6 @@ class Client(cmemcached_imp.Client):
         self.behaviors[k] = v
         return cmemcached_imp.Client.set_behavior(self, k, v)
 
-    def _record_thread_ident(self):
-        if self._thread_ident is None:
-            self._thread_ident = self._get_current_thread_ident()
-
-    def _check_thread_ident(self):
-        if self._get_current_thread_ident() != self._thread_ident:
-            raise ThreadUnsafe("mc client created in %s, called in %s" %
-                               (self._thread_ident,
-                                self._get_current_thread_ident()))
-
-    def _get_current_thread_ident(self):
-        return (os.getpid(), threading.current_thread().name)
-
     def set(self, key, val, time=0, compress=True):
         self._record_thread_ident()
         self._check_thread_ident()
@@ -120,3 +107,22 @@ class Client(cmemcached_imp.Client):
     def expire(self, key):
         self._record_thread_ident()
         return self.touch(key, -1)
+
+
+    def clear_thread_ident(self):
+        self._thread_ident = None
+
+    def _record_thread_ident(self):
+        if self._thread_ident is None:
+            self._thread_ident = self._get_current_thread_ident()
+
+    def _check_thread_ident(self):
+        if self._get_current_thread_ident() != self._thread_ident:
+            raise ThreadUnsafe("mc client created in %s, called in %s" %
+                               (self._thread_ident,
+                                self._get_current_thread_ident()))
+
+    def _get_current_thread_ident(self):
+        return (os.getpid(), threading.current_thread().name)
+
+
