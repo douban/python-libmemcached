@@ -5,6 +5,7 @@ import cPickle as pickle
 import marshal
 import time
 import os
+import threading
 
 TEST_SERVER = "localhost"
 TEST_UNIX_SOCKET = "/tmp/memcached.sock"
@@ -343,6 +344,24 @@ class TestCmemcached(unittest.TestCase):
         }
         for k in rs:
             self.assertEqual(mc.get_host_by_key(k), rs[k])
+
+
+    def test_should_raise_exception_if_called_in_different_thread(self):
+        catched = [False]
+        def f():
+            try:
+                self.mc.set('key_thread', 1)
+            except cmemcached.ThreadUnsafe:
+                catched[0] = True
+
+        # make connection in main thread
+        self.mc.get('key_thread')
+
+        # use it in another thread (should be forbidden)
+        t = threading.Thread(target=f)
+        t.start()
+        t.join()
+        self.assertEqual(catched, [True])
 
 
 #class TestUnixSocketCmemcached(TestCmemcached):

@@ -1,7 +1,9 @@
+import os
 import sys
 from zlib import compress, decompress, error as zlib_error
 from cmemcached_imp import *
 import cmemcached_imp 
+import threading
 
 _FLAG_PICKLE = 1<<0
 _FLAG_INTEGER = 1<<1
@@ -32,6 +34,9 @@ def restore(val, flag):
 
     return cmemcached_imp.restore(val, flag)
 
+class ThreadUnsafe(Exception):
+    pass
+
 class Client(cmemcached_imp.Client):
     "a wraper around cmemcached_imp"
 
@@ -57,6 +62,8 @@ class Client(cmemcached_imp.Client):
         for k,v in behaviors.items():
             self.set_behavior(k, v)
 
+        self._thread_ident = None
+
     def __reduce__(self):
         return (Client, (self.servers, self.do_split, self.comp_threshold, self.behaviors))
 
@@ -65,6 +72,8 @@ class Client(cmemcached_imp.Client):
         return cmemcached_imp.Client.set_behavior(self, k, v)
 
     def set(self, key, val, time=0, compress=True):
+        self._record_thread_ident()
+        self._check_thread_ident()
         comp = compress and self.comp_threshold or 0
         val, flag = prepare(val, comp)
         if val is not None:
@@ -73,22 +82,47 @@ class Client(cmemcached_imp.Client):
             print >>sys.stderr, '[cmemcached]', 'serialize %s failed' % key
 
     def set_multi(self, values, time=0, compress=True):
+        self._record_thread_ident()
+        self._check_thread_ident()
         comp = compress and self.comp_threshold or 0
         raw_values = dict((k, prepare(v, comp)) for k,v in values.iteritems())
         return self.set_multi_raw(raw_values, time)
 
     def get(self, key):
+        self._record_thread_ident()
         val, flag = cmemcached_imp.Client.get_raw(self, key)
         return restore(val, flag)
 
     def get_multi(self, keys):
+        self._record_thread_ident()
         result = cmemcached_imp.Client.get_multi_raw(self, keys)
         return dict((k, restore(v, flag))
                     for k, (v, flag) in result.iteritems())
 
     def get_list(self, keys):
+        self._record_thread_ident()
         result = self.get_multi(keys)
         return [result.get(key) for key in keys]
 
     def expire(self, key):
+        self._record_thread_ident()
         return self.touch(key, -1)
+
+
+    def clear_thread_ident(self):
+        self._thread_ident = None
+
+    def _record_thread_ident(self):
+        if self._thread_ident is None:
+            self._thread_ident = self._get_current_thread_ident()
+
+    def _check_thread_ident(self):
+        if self._get_current_thread_ident() != self._thread_ident:
+            raise ThreadUnsafe("mc client created in %s, called in %s" %
+                               (self._thread_ident,
+                                self._get_current_thread_ident()))
+
+    def _get_current_thread_ident(self):
+        return (os.getpid(), threading.current_thread().name)
+
+
