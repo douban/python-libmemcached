@@ -865,9 +865,6 @@ cdef class Client:
         free(ckeys)
         free(ckey_lens)
 
-        if self.prefix:
-            result = dict([(key.replace(self.prefix, ''), value)
-                     for key, value in result.iteritems()])
         return result
 
     def incr(self, key, int val=1):
