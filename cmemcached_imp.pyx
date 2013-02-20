@@ -536,11 +536,10 @@ cdef class Client:
         cdef int retval_int
         cdef PyThreadState *_save
 
-        PyString_AsStringAndSize(key, &c_key, &key_len)
-
         # set prefix
         if self.prefix:
             key = self.prefix + key
+        PyString_AsStringAndSize(key, &c_key, &key_len)
 
         # memcached do not support the key whose length is bigger than MEMCACHED_MAX_KEY
         if key_len >= MEMCACHED_MAX_KEY:
