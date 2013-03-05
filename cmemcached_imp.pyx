@@ -463,15 +463,13 @@ cdef class Client:
     cdef memcached_st *mc
     cdef object servers
     cdef memcached_return    last_error
-    cdef char* prefix
 
     def __cinit__(self, *a, **kw):
         """
         Create a new Client object with the given list of servers.
         """
         self.mc = memcached_create(NULL)
-        prefix = kw.pop('prefix', '')
-        self.prefix = prefix
+        self.prefix = kw.pop('prefix', '')
         if not self.mc:
             raise MemoryError
         self.servers = []
