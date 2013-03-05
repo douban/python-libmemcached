@@ -470,12 +470,12 @@ cdef class Client:
         Create a new Client object with the given list of servers.
         """
         self.mc = memcached_create(NULL)
-        prefix = kw.pop('prefix', '')
-        self.prefix = prefix
+        self.__prefix = kw.pop('prefix', '')
+        self.prefix = self.__prefix
         if not self.mc:
             raise MemoryError
         self.servers = []
-        
+
         #if not __mc_instances:
         #    pthread_atfork(close_all_mc, NULL, NULL)
         __mc_instances.append(weakref.ref(self))
