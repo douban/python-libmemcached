@@ -1,1 +1,6 @@
 cmemcached_imp.c
+build/*
+cmemcached.pyc
+cmemcached_imp.so
+dist/*
+python_libmemcached.egg-info/*
