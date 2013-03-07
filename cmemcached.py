@@ -12,7 +12,7 @@ _FLAG_BOOL = 1<<3
 _FLAG_COMPRESS = 1<<4
 _FLAG_MARSHAL = 1<<5
 
-VERSION="0.40-greenify"
+VERSION="0.41-greenify"
 
 def prepare(val, comp_threshold):
     val, flag = cmemcached_imp.prepare(val)
