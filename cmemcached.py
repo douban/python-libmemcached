@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 from zlib import compress, decompress, error as zlib_error
 from cmemcached_imp import *
 import cmemcached_imp 
