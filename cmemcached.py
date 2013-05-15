@@ -63,6 +63,7 @@ class Client(cmemcached_imp.Client):
             self.set_behavior(k, v)
 
         self._thread_ident = None
+        self._thread_ident_stack = None
 
     def __reduce__(self):
         return (Client, (self.servers, self.do_split, self.comp_threshold, self.behaviors))
@@ -111,18 +112,19 @@ class Client(cmemcached_imp.Client):
 
     def clear_thread_ident(self):
         self._thread_ident = None
+        self._thread_ident_stack = None
 
     def _record_thread_ident(self):
         if self._thread_ident is None:
             self._thread_ident = self._get_current_thread_ident()
+            self._thread_ident_stack = traceback.extract_stack()
 
     def _check_thread_ident(self):
         if self._get_current_thread_ident() != self._thread_ident:
-            raise ThreadUnsafe("mc client created in %s, called in %s" %
+            raise ThreadUnsafe("mc client created in %s\n%s, called in %s" %
                                (self._thread_ident,
+                                self._thread_ident_stack,
                                 self._get_current_thread_ident()))
 
     def _get_current_thread_ident(self):
         return (os.getpid(), threading.current_thread().name)
-
-
