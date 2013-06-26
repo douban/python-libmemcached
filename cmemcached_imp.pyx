@@ -533,7 +533,10 @@ cdef class Client:
 
     def _use_prefix(self, key):
         if self.prefix:
-            key = self.prefix + key
+            ask_exists = key.startswith('?')
+            key = self.prefix + (key[1:] if ask_exists else key)
+            if ask_exists:
+                key = '?' + key
         return key
 
     def _store(self, cmd, key, val, time_t time=0, cas=0, expected=(MEMCACHED_SUCCESS,)):
