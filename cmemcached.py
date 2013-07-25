@@ -3,7 +3,7 @@ import sys
 import traceback
 from zlib import compress, decompress, error as zlib_error
 from cmemcached_imp import *
-import cmemcached_imp 
+import cmemcached_imp
 import threading
 
 _FLAG_PICKLE = 1<<0
@@ -48,13 +48,13 @@ class Client(cmemcached_imp.Client):
         self.comp_threshold = comp_threshold
         self.behaviors = dict(behaviors.items())
         self.add_server(servers)
-        
+
         self.set_behavior(BEHAVIOR_NO_BLOCK, 1) # nonblock
         self.set_behavior(BEHAVIOR_TCP_NODELAY, 1) # nonblock
         self.set_behavior(BEHAVIOR_TCP_KEEPALIVE, 1)
         self.set_behavior(BEHAVIOR_CACHE_LOOKUPS, 1)
         #self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0) # no request buffer
-        
+
         #self.set_behavior(BEHAVIOR_KETAMA, 1)
         self.set_behavior(BEHAVIOR_HASH, HASH_MD5)
         self.set_behavior(BEHAVIOR_KETAMA_HASH, HASH_MD5)
@@ -110,6 +110,8 @@ class Client(cmemcached_imp.Client):
         self._record_thread_ident()
         return self.touch(key, -1)
 
+    def reset(self):
+        self.clear_thread_ident()
 
     def clear_thread_ident(self):
         self._thread_ident = None
