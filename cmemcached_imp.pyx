@@ -1,4 +1,4 @@
-__author__    = "davies <davies.liu@gmail.com> hongqn <hongqn@gmail.com> subdragon <subdragon@gmail.com>"
+__author__    = "davies <davies.liu@gmail.com> hongqn <hongqn@gmail.com> subdragon <subdragon@gmail.com> hurricane1026@gmail.com"
 __version__   = "0.40"
 __copyright__ = "Copyright (C) 2010 douban.com"
 __license__   = "Apache License 2.0"
@@ -34,7 +34,7 @@ cdef extern from "pthread.h":
                           void (*child)())
 
 cdef extern from "libmemcached/memcached.h":
-    ctypedef enum memcached_return: 
+    ctypedef enum memcached_return:
         MEMCACHED_SUCCESS
         MEMCACHED_FAILURE
         MEMCACHED_HOST_LOOKUP_FAILURE
@@ -172,7 +172,7 @@ cdef extern from "libmemcached/memcached.h":
 
     struct memcached_result_st:
         pass
-    
+
     struct memcached_stat_st:
         uint32_t connection_structures
         uint32_t curr_connections
@@ -215,7 +215,7 @@ cdef extern from "libmemcached/memcached.h":
     memcached_st *memcached_create(memcached_st *ptr)
     void memcached_free(memcached_st *ptr)
     char* memcached_get(memcached_st *ptr, char *key, size_t key_length, size_t *value_length, uint32_t *flags, memcached_return *error)
-    memcached_return memcached_set(memcached_st *ptr, char *key, size_t key_length, 
+    memcached_return memcached_set(memcached_st *ptr, char *key, size_t key_length,
                                char *value, size_t value_length, time_t expiration, uint32_t  flags)
     memcached_server_st *memcached_servers_parse(char *server_strings)
     memcached_return memcached_server_push(memcached_st *ptr, memcached_server_st *list)
@@ -226,33 +226,33 @@ cdef extern from "libmemcached/memcached.h":
     memcached_return memcached_server_add_udp_with_weight(memcached_st *ptr, char *hostname, int port, uint32_t weight)
     memcached_return memcached_server_add_unix_socket_with_weight(memcached_st *ptr, char *filename, uint32_t weight)
     memcached_return memcached_server_add_with_weight(memcached_st *ptr, char *hostname, int port, uint32_t weight)
-    
-    memcached_return memcached_increment(memcached_st *ptr, 
+
+    memcached_return memcached_increment(memcached_st *ptr,
             char *key, size_t key_length,
             uint32_t offset,
             uint64_t *value)
-    memcached_return memcached_decrement(memcached_st *ptr, 
+    memcached_return memcached_decrement(memcached_st *ptr,
             char *key, size_t key_length,
             uint32_t offset,
             uint64_t *value)
     memcached_return memcached_delete(memcached_st *ptr, char *key, size_t key_length,
             time_t expiration)
     memcached_return memcached_mget(memcached_st *ptr, 
-                                char **keys, size_t *key_length, 
+                                char **keys, size_t *key_length,
                                 size_t number_of_keys)
-    char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length, 
-                      size_t *value_length, uint32_t *flags, 
+    char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length,
+                      size_t *value_length, uint32_t *flags,
                       memcached_return *error)
     memcached_return memcached_behavior_set(memcached_st *ptr, memcached_behavior flag, uint64_t data)
     uint64_t memcached_behavior_get(memcached_st *ptr, unsigned int flag)
     memcached_return memcached_append(memcached_st *ptr, 
                                   char *key, size_t key_length,
-                                  char *value, size_t value_length, 
+                                  char *value, size_t value_length,
                                   time_t expiration,
                                   uint32_t flags)
-    memcached_return memcached_prepend(memcached_st *ptr, 
+    memcached_return memcached_prepend(memcached_st *ptr,
                                    char *key, size_t key_length,
-                                   char *value, size_t value_length, 
+                                   char *value, size_t value_length,
                                    time_t expiration,
                                    uint32_t flags)
     memcached_result_st *memcached_result_create(memcached_st *memc,
@@ -275,7 +275,7 @@ cdef extern from "libmemcached/memcached.h":
             char *value, size_t value_length,
             time_t expiration,
             uint32_t flags)
-    memcached_return memcached_touch(memcached_st *ptr, char *key, 
+    memcached_return memcached_touch(memcached_st *ptr, char *key,
             size_t key_length, int expiration)
     memcached_stat_st *memcached_stat(memcached_st *ptr, char *args, memcached_return *error)
     void memcached_stat_free(memcached_st *ptr, memcached_stat_st *stat)
@@ -299,7 +299,7 @@ cdef extern from "split_mc.h":
 import sys
 from cPickle import dumps, loads
 import marshal
-from string import join 
+from string import join
 from time import strftime
 import weakref
 
@@ -357,7 +357,7 @@ def prepare(val):
     return val, flag
 
 cdef object _restore(object val, uint32_t flags):
-    
+
     if flags == 0:
         pass
     elif flags & _FLAG_BOOL:
@@ -387,7 +387,7 @@ cdef object _restore_splitted(memcached_st *mc, object key, int count):
     cdef Py_ssize_t key_len
     cdef char *c_val
     cdef size_t bytes
-    
+
     PyString_AsStringAndSize(key, &c_key, &key_len)
     c_val = split_mc_get(mc, c_key, key_len, count, &bytes)
 
@@ -397,7 +397,7 @@ cdef object _restore_splitted(memcached_st *mc, object key, int count):
     else:
         val = None
     return val
-        
+
 HASH_DEFAULT   = PyInt_FromLong(MEMCACHED_HASH_DEFAULT)
 HASH_MD5       = PyInt_FromLong(MEMCACHED_HASH_MD5)
 HASH_CRC       = PyInt_FromLong(MEMCACHED_HASH_CRC)
@@ -438,7 +438,7 @@ BEHAVIOR_BINARY_PROTOCOL = PyInt_FromLong(MEMCACHED_BEHAVIOR_BINARY_PROTOCOL)
 BEHAVIOR_SND_TIMEOUT = PyInt_FromLong(MEMCACHED_BEHAVIOR_SND_TIMEOUT)
 BEHAVIOR_RCV_TIMEOUT = PyInt_FromLong(MEMCACHED_BEHAVIOR_RCV_TIMEOUT)
 BEHAVIOR_SERVER_FAILURE_LIMIT = PyInt_FromLong(MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT)
-BEHAVIOR_IO_MSG_WATERMARK        = PyInt_FromLong(MEMCACHED_BEHAVIOR_IO_MSG_WATERMARK) 
+BEHAVIOR_IO_MSG_WATERMARK        = PyInt_FromLong(MEMCACHED_BEHAVIOR_IO_MSG_WATERMARK)
 BEHAVIOR_IO_BYTES_WATERMARK      = PyInt_FromLong(MEMCACHED_BEHAVIOR_IO_BYTES_WATERMARK)
 BEHAVIOR_IO_KEY_PREFETCH         = PyInt_FromLong(MEMCACHED_BEHAVIOR_IO_KEY_PREFETCH)
 BEHAVIOR_HASH_WITH_PREFIX_KEY    = PyInt_FromLong(MEMCACHED_BEHAVIOR_HASH_WITH_PREFIX_KEY)
@@ -563,11 +563,11 @@ cdef class Client:
 
         if cmd in ('append', 'prepend') and type(val) != type(''):
             sys.stderr.write("[cmemcached]%s only support string: %s" % (cmd, key))
-            return 0 
+            return 0
 
         val = _prepare(val, &flags)
         PyString_AsStringAndSize(val, &c_val, &bytes)
-        
+
         #_save = PyEval_SaveThread()
         if cmd == 'add':
             retval = memcached_add(self.mc, c_key, key_len, c_val, bytes, time, flags)
@@ -577,7 +577,7 @@ cdef class Client:
             retval = memcached_cas(self.mc, c_key, key_len, c_val, bytes, time, flags, cas)
         elif cmd == 'append':
             retval = memcached_append(self.mc, c_key, key_len, c_val, bytes, time, flags)
-        elif cmd == 'prepend': 
+        elif cmd == 'prepend':
             retval = memcached_prepend(self.mc, c_key, key_len, c_val, bytes, time, flags)
         else:
             #PyEval_RestoreThread(_save)
@@ -591,7 +591,7 @@ cdef class Client:
 
     def replace(self, key, val, time_t time=0):
         return self._store('replace', key, val, time)
- 
+
     def cas(self, key, val, time_t time=0, cas=0):
         return self._store('cas', key, val, time, cas)
 
@@ -608,9 +608,9 @@ cdef class Client:
 
         if type(val) != type(''):
             sys.stderr.write("[cmemcached]%s only support string: %s" % (cmd, keys))
-            return 0 
+            return 0
         PyString_AsStringAndSize(val, &c_val, &bytes)
-       
+
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key in keys:
             key = self._use_prefix(key)
@@ -622,7 +622,7 @@ cdef class Client:
             elif cmd == 'prepend':
                 retval = memcached_prepend(self.mc, c_key, key_len, c_val, bytes, 0, 0)
         self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        
+
         return retval == MEMCACHED_SUCCESS
 
     def append_multi(self, keys, val):
@@ -658,7 +658,7 @@ cdef class Client:
         cdef int retval_int
         cdef int i
         cdef PyThreadState *_save
-       
+
         key = self._use_prefix(key)
         if self.check_key(key, prefixed=1) == 0:
             return 0
@@ -676,21 +676,21 @@ cdef class Client:
         _save = PyEval_SaveThread()
         retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
         PyEval_RestoreThread(_save)
-        
+
         if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
-                MEMCACHED_SERVER_TEMPORARILY_DISABLED, 
+                MEMCACHED_SERVER_TEMPORARILY_DISABLED,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
             sys.stderr.write('[cmemcached]memcached_set: server %s error: %s\n' 
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
-        
+
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
-    
+
     def set_multi_raw(self, values, time_t time=0):
         cdef Py_ssize_t key_len, bytes
         cdef char *c_key, *c_val
         cdef uint32_t flags
         cdef memcached_return retval
-        
+
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key, (val, flags_py) in values.iteritems():
             key = self._use_prefix(key)
@@ -711,16 +711,16 @@ cdef class Client:
         cdef char *c_key
         cdef memcached_return retval
         cdef PyThreadState *_save
-        
+
         key = self._use_prefix(key)
         if not self.check_key(key, prefixed=1):
-            return 0 
+            return 0
 
         PyString_AsStringAndSize(key, &c_key, &key_len)
         _save = PyEval_SaveThread()
         retval = memcached_delete(self.mc, c_key, key_len, time)
         PyEval_RestoreThread(_save)
-        
+
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
 
     def delete_multi(self, keys, time_t time=0):
@@ -737,8 +737,8 @@ cdef class Client:
                 continue
             retval = memcached_delete(self.mc, c_key, key_len, time)
         self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        
-        return retval == MEMCACHED_SUCCESS 
+
+        return retval == MEMCACHED_SUCCESS
 
     def touch(self, key, int exptime):
         cdef Py_ssize_t key_len
@@ -748,7 +748,7 @@ cdef class Client:
 
         key = self._use_prefix(key)
         if not self.check_key(key, prefixed=1):
-            return 0 
+            return 0
 
         PyString_AsStringAndSize(key, &c_key, &key_len)
         _save = PyEval_SaveThread()
@@ -765,7 +765,7 @@ cdef class Client:
         cdef memcached_return rc
         cdef char * c_val
         cdef PyThreadState *_save
-        
+
         self.last_error = MEMCACHED_SUCCESS
 
         key = self._use_prefix(key)
@@ -778,12 +778,12 @@ cdef class Client:
         _save = PyEval_SaveThread()
         c_val = memcached_get(self.mc, c_key, key_len, &bytes, &flags, &rc)
         PyEval_RestoreThread(_save)
-        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND, 
+        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED):
             sys.stderr.write('[cmemcached]memcached_get: server %s error: %s\n' 
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
-        
+
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND): 
             self.last_error = rc
 
@@ -883,18 +883,18 @@ cdef class Client:
         PyString_AsStringAndSize(key, &c_key, &key_len)
         if key_len >= MEMCACHED_MAX_KEY:
             return
-        
+
         _save = PyEval_SaveThread()
         if val > 0:
             rc=memcached_increment(self.mc, c_key, key_len, val, &new_value)
         else:
             rc=memcached_decrement(self.mc, c_key, key_len, -val, &new_value)
         PyEval_RestoreThread(_save)
-        
+
         if rc != MEMCACHED_SUCCESS:
             return
         return new_value
-        
+
     def decr(self, key, int val=1):
         return self.incr(key, -val)
 
@@ -936,7 +936,7 @@ cdef class Client:
             st['bytes_read'] = stat[i].bytes_read
             st['bytes_written'] = stat[i].bytes_written
             st['limit_maxbytes'] = stat[i].limit_maxbytes
-            
+
             stats[self.servers[i]] = st
 
         memcached_stat_free(self.mc, stat)
