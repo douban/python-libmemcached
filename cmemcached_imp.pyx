@@ -206,6 +206,7 @@ cdef extern from "libmemcached/memcached.h":
     uint32_t memcached_result_flags(memcached_result_st* result)
     uint64_t memcached_result_cas(memcached_result_st* result)
     uint32_t memcached_result_key_length(memcached_result_st* result)
+    void memcached_result_free(memcached_result_st* result)
     char *memcached_result_value(memcached_result_st *ptr)
     size_t memcached_result_length(memcached_result_st *ptr)
 
@@ -798,6 +799,53 @@ cdef class Client:
             val = None
 
         return val, flags
+
+    def gets_raw(self, key):
+        cdef char *c_key
+        cdef Py_ssize_t key_len
+        cdef uint32_t flags
+        cdef size_t bytes
+        cdef memcached_return rc
+        cdef long long cas
+
+        cdef char * c_val
+        cdef PyThreadState *_save
+        cdef memcached_result_st mc_result
+        cdef memcached_result_st *mc_result_ptr
+
+        self.last_error = MEMCACHED_SUCCESS
+        key = self._use_prefix(key)
+        if not self.check_key(key, prefixed=1):
+            return None, 0, 0
+
+        flags = 0
+        PyString_AsStringAndSize(key, &c_key, &key_len)
+
+        _save = PyEval_SaveThread()
+        rc = memcached_mget(self.mc, <const char * const*>&c_key, <const size_t *>(&key_len), 1)
+        PyEval_RestoreThread(_save)
+        if rc != MEMCACHED_SUCCESS:
+            self.last_error = rc
+            return None, 0, 0
+
+        self.last_error = MEMCACHED_SUCCESS
+        mc_result_ptr = memcached_result_create(self.mc, &mc_result)
+        mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
+        if mc_result_ptr == NULL:
+            #can not create mc_result
+            return None, 0, 0
+        c_val = memcached_result_value(mc_result_ptr)
+        flags = memcached_result_flags(mc_result_ptr)
+        cas = memcached_result_cas(mc_result_ptr)
+        val = PyString_FromStringAndSize(c_val,
+                memcached_result_length(mc_result_ptr)
+                )
+        memcached_result_free(mc_result_ptr)
+        mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
+        if mc_result_ptr== NULL:
+            return val, flags, cas
+        else: return None, 0, 0
+
 
     def get_multi_raw(self, keys):
         cdef char **ckeys
