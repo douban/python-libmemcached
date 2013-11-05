@@ -844,7 +844,10 @@ cdef class Client:
         mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
         if mc_result_ptr== NULL:
             return val, flags, cas
-        else: return None, 0, 0
+        else:
+            memcached_result_free(mc_result_ptr)
+            memcached_quit(self.mc)
+            return None, 0, 0
 
 
     def get_multi_raw(self, keys):
