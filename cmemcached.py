@@ -59,6 +59,7 @@ class Client(cmemcached_imp.Client):
         self.set_behavior(BEHAVIOR_HASH, HASH_MD5)
         self.set_behavior(BEHAVIOR_KETAMA_HASH, HASH_MD5)
         self.set_behavior(BEHAVIOR_DISTRIBUTION, DIST_CONSISTENT_KETAMA)
+        self.set_behavior(BEHAVIOR_SUPPORT_CAS, 1)
 
         for k,v in behaviors.items():
             self.set_behavior(k, v)
@@ -100,6 +101,11 @@ class Client(cmemcached_imp.Client):
         result = cmemcached_imp.Client.get_multi_raw(self, keys)
         return dict((k, restore(v, flag))
                     for k, (v, flag) in result.iteritems())
+
+    def gets(self, key):
+        self._record_thread_ident()
+        val, flag, cas = cmemcached_imp.Client.gets_raw(self, key)
+        return restore(val, flag), cas
 
     def get_list(self, keys):
         self._record_thread_ident()
