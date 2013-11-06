@@ -207,7 +207,7 @@ cdef extern from "libmemcached/memcached.h":
     uint64_t memcached_result_cas(memcached_result_st* result)
     uint32_t memcached_result_key_length(memcached_result_st* result)
     void memcached_result_free(memcached_result_st* result)
-    char *memcached_result_value(memcached_result_st *ptr)
+    const char *memcached_result_value(memcached_result_st *ptr)
     size_t memcached_result_length(memcached_result_st *ptr)
 
     char* memcached_result_key_value(memcached_result_st* result)
@@ -238,8 +238,9 @@ cdef extern from "libmemcached/memcached.h":
             uint64_t *value)
     memcached_return memcached_delete(memcached_st *ptr, char *key, size_t key_length,
             time_t expiration)
-    memcached_return memcached_mget(memcached_st *ptr, 
-                                char **keys, size_t *key_length,
+    memcached_return memcached_mget(memcached_st *ptr,
+                                const char * const *keys,
+                                const size_t *key_length,
                                 size_t number_of_keys)
     char *memcached_fetch(memcached_st *ptr, char *key, size_t *key_length,
                       size_t *value_length, uint32_t *flags,
@@ -281,7 +282,7 @@ cdef extern from "libmemcached/memcached.h":
     memcached_stat_st *memcached_stat(memcached_st *ptr, char *args, memcached_return *error)
     void memcached_stat_free(memcached_st *ptr, memcached_stat_st *stat)
     uint32_t memcached_generate_hash(memcached_st *ptr, char *key, size_t key_length)
-    char *memcached_strerror(memcached_st *ptr, memcached_return rc)
+    const char *memcached_strerror(memcached_st *ptr, memcached_return rc)
     memcached_return memcached_flush_buffers(memcached_st *mem)
     void memcached_quit(memcached_st *ptr)
 
@@ -518,7 +519,7 @@ cdef class Client:
         return self.last_error
 
     def get_last_strerror(self):
-        cdef char *c_str = memcached_strerror(self.mc, self.last_error)
+        cdef const char *c_str = memcached_strerror(self.mc, self.last_error)
         return PyString_FromStringAndSize(c_str, strlen(c_str))
 
     def __dealloc__(self):
@@ -808,7 +809,7 @@ cdef class Client:
         cdef memcached_return rc
         cdef long long cas
 
-        cdef char * c_val
+        cdef const char * c_val
         cdef PyThreadState *_save
         cdef memcached_result_st mc_result
         cdef memcached_result_st *mc_result_ptr
@@ -881,7 +882,7 @@ cdef class Client:
 
 
         _save = PyEval_SaveThread()
-        rc = memcached_mget(self.mc, ckeys, <size_t *>ckey_lens, valid_nkeys)
+        rc = memcached_mget(self.mc, <const char * const*>ckeys, <const size_t *>ckey_lens, valid_nkeys)
         PyEval_RestoreThread(_save)
         if rc != MEMCACHED_SUCCESS:
             self.last_error = rc
