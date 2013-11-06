@@ -11,10 +11,10 @@ int split_mc_set(struct memcached_st *mc, char *key, size_t key_len, void *val,
 	size_t chunk_bytes;
 
 	/* assert bytes > CHUNK_SIZE */
-    if (key_len > 200 || bytes > CHUNK_SIZE * 10) return -1; 
+    if (key_len > 200 || bytes > CHUNK_SIZE * 10) return -1;
 
 	for (i=0; bytes>0; i++) {
-		retval = snprintf(chunk_key, 250, "~%.*s/%d", key_len, key, i);
+		retval = snprintf(chunk_key, 250, "~%zu%s/%d", key_len, key, i);
 		if (retval < 0 || retval >= 250) {
 			return -1;
 		}
@@ -54,7 +54,7 @@ char* split_mc_get(struct memcached_st *mc, char *key, size_t key_len,
 	if (!r) return NULL;
 
 	for (i=0, v=r; i<nchunks; i++) {
-		snprintf(chunk_key, 250, "~%.*s/%d", key_len, key, i);
+		snprintf(chunk_key, 250, "~%zu%s/%d", key_len, key, i);
 		c_val = memcached_get(mc, chunk_key, strlen(chunk_key),
 				&length, &flags, &rc);	
 		if(rc != MEMCACHED_SUCCESS || !c_val || length > CHUNK_SIZE) {
