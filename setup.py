@@ -18,7 +18,7 @@ setup(
         description="python memcached client wrapped on libmemcached",
         maintainer="davies",
         maintainer_email="davies.liu@gmail.com",
-        install_requires = ['cython'],
+        install_requires = ['cython>=0.18'],
         cmdclass = {'build_ext': build_ext},
         ext_modules=[Extension('cmemcached_imp',
             ['cmemcached_imp.pyx', 'split_mc.c'],
