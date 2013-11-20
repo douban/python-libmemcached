@@ -26,5 +26,6 @@ setup(
             **options)],
 
         py_modules=['cmemcached'],
-        test_suite="cmemcached_test",
+        tests_require = ['nose', 'mock'],
+        test_suite="nose.collector",
 )
