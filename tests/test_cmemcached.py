@@ -6,9 +6,21 @@ import marshal
 import time
 import os
 import threading
+import subprocess
 
 TEST_SERVER = "localhost"
 TEST_UNIX_SOCKET = "/tmp/memcached.sock"
+
+memcached_process = None
+
+def setup():
+    global memcached_process
+    memcached_process = subprocess.Popen(['memcached'])
+
+
+def teardown():
+    memcached_process.terminate()
+
 
 class BigObject(object):
     def __init__(self, letter='1', size=2000000):

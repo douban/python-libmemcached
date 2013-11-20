@@ -467,7 +467,7 @@ cdef class Client:
     cdef memcached_return    last_error
     cdef char* prefix
 
-    def __cinit__(self, *a, **kw):
+    def __cinit__(self, *a, logger = None,**kw):
         """
         Create a new Client object with the given list of servers.
         """
@@ -477,6 +477,7 @@ cdef class Client:
         if not self.mc:
             raise MemoryError
         self.servers = []
+        self.log = logger if logger else lambda x : None
 
         #if not __mc_instances:
         #    pthread_atfork(close_all_mc, NULL, NULL)
@@ -682,7 +683,7 @@ cdef class Client:
         if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
-            sys.stderr.write('[cmemcached]memcached_set: server %s error: %s\n' 
+            self.log('[cmemcached]memcached_set: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
@@ -783,7 +784,7 @@ cdef class Client:
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED):
-            sys.stderr.write('[cmemcached]memcached_get: server %s error: %s\n' 
+            self.log('[cmemcached]memcached_get: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
 
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND): 

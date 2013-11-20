@@ -41,8 +41,8 @@ class ThreadUnsafe(Exception):
 class Client(cmemcached_imp.Client):
     "a wraper around cmemcached_imp"
 
-    def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, *a, **kw):
-        cmemcached_imp.Client.__init__(self)
+    def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, logger=None, *a, **kw):
+        cmemcached_imp.Client.__init__(self, logger)
         self.servers = servers
         self.do_split = do_split
         self.comp_threshold = comp_threshold
