@@ -683,7 +683,7 @@ cdef class Client:
         if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
-            self.log('[cmemcached]memcached_set: server %s error: %s\n' \
+            self.log('[cmemcached]memcached_set: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
@@ -784,7 +784,7 @@ cdef class Client:
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED):
-            self.log('[cmemcached]memcached_get: server %s error: %s\n' \
+            self.log('[cmemcached]memcached_get: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
 
         if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND): 
