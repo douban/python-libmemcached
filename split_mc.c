@@ -3,25 +3,28 @@
 #include <string.h>
 #include "split_mc.h"
 
-int split_mc_set(struct memcached_st *mc, char *key, size_t key_len, void *val,
+memcached_return split_mc_set(struct memcached_st *mc, char *key, size_t key_len, void *val,
 		size_t bytes, time_t expire, uint32_t flags)
 {
 	char chunk_key[250];
 	int i, retval;
+    int r;
 	size_t chunk_bytes;
 
 	/* assert bytes > CHUNK_SIZE */
-    if (key_len > 200 || bytes > CHUNK_SIZE * 10) return -1;
+    if (key_len > 200 || bytes > CHUNK_SIZE * 10) return MEMCACHED_KEY_TOO_BIG;
 
 	for (i=0; bytes>0; i++) {
-		retval = snprintf(chunk_key, 250, "~%zu%s/%d", key_len, key, i);
-		if (retval < 0 || retval >= 250) {
-			return -1;
-		}
+		r = snprintf(chunk_key, 250, "~%zu%s/%d", key_len, key, i);
+        if (r < 0) {
+            return MEMCACHED_BAD_KEY_PROVIDED;
+        } else if (r >= 250) {
+            return MEMCACHED_KEY_TOO_BIG;
+        }
 		chunk_bytes = bytes > CHUNK_SIZE ? CHUNK_SIZE : bytes;
 		retval = memcached_set(mc, chunk_key, retval, val, chunk_bytes,
 				expire, flags);
-		if (retval != 0 && retval != 31) {
+		if (retval != MEMCACHED_SUCCESS && retval != MEMCACHED_TIMEOUT) {
 			return retval;
 		}
 		val += CHUNK_SIZE;
@@ -56,7 +59,7 @@ char* split_mc_get(struct memcached_st *mc, char *key, size_t key_len,
 	for (i=0, v=r; i<nchunks; i++) {
 		snprintf(chunk_key, 250, "~%zu%s/%d", key_len, key, i);
 		c_val = memcached_get(mc, chunk_key, strlen(chunk_key),
-				&length, &flags, &rc);	
+				&length, &flags, &rc);
 		if(rc != MEMCACHED_SUCCESS || !c_val || length > CHUNK_SIZE) {
             if (c_val) free(c_val);
 			goto error;

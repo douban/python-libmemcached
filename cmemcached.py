@@ -84,12 +84,12 @@ class Client(cmemcached_imp.Client):
         else:
             print >>sys.stderr, '[cmemcached]', 'serialize %s failed' % key
 
-    def set_multi(self, values, time=0, compress=True):
+    def set_multi(self, values, time=0, compress=True, return_failure = False):
         self._record_thread_ident()
         self._check_thread_ident()
         comp = compress and self.comp_threshold or 0
         raw_values = dict((k, prepare(v, comp)) for k,v in values.iteritems())
-        return self.set_multi_raw(raw_values, time)
+        return self.set_multi_raw(raw_values, time, return_failure = return_failure)
 
     def get(self, key):
         self._record_thread_ident()
