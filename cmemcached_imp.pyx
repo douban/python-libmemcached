@@ -852,7 +852,7 @@ cdef class Client:
             return None, 0, 0
 
 
-    def get_multi_raw(self, keys_):
+    def get_multi_raw(self, keys):
         cdef char **ckeys
         cdef Py_ssize_t *ckey_lens
 
@@ -867,7 +867,8 @@ cdef class Client:
         cdef size_t bytes
         cdef PyThreadState *_save
 
-        keys = keyss_[:]
+        # do not modify input parameter
+        keys = keys[:]
 
         nkeys = len(keys)
         ckeys = <char **>malloc(sizeof(char *) * nkeys)

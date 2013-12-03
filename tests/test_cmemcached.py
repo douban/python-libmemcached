@@ -16,6 +16,7 @@ memcached_process = None
 def setup():
     global memcached_process
     memcached_process = subprocess.Popen(['memcached'])
+    time.sleep(0.5)
 
 
 def teardown():
@@ -403,6 +404,13 @@ class TestBinaryCmemcached(TestCmemcached):
 
     def test_touch(self):
         "not yet support"
+
+
+class TestPrefix(TestCmemcached):
+    def setUp(self):
+        self.mc = cmemcached.Client([TEST_SERVER], comp_threshold=1024,
+                                    prefix='/prefix')
+
 
 if __name__ == '__main__':
     unittest.main()
