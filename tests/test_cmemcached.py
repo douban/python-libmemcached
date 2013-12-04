@@ -240,7 +240,9 @@ class TestCmemcached(unittest.TestCase):
 
     def test_big_list(self):
         v = range(1024*1024)
-        self.assertEqual(self.mc.set('big_list', v), True)
+        r = self.mc.set('big_list', v)
+
+        self.assertEqual(r, True)
         self.assertEqual(self.mc.get('big_list'), v)
 
     def test_last_error(self):
