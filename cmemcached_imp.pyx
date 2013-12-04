@@ -247,7 +247,7 @@ cdef extern from "libmemcached/memcached.h":
                       memcached_return *error)
     memcached_return memcached_behavior_set(memcached_st *ptr, memcached_behavior flag, uint64_t data)
     uint64_t memcached_behavior_get(memcached_st *ptr, unsigned int flag)
-    memcached_return memcached_append(memcached_st *ptr, 
+    memcached_return memcached_append(memcached_st *ptr,
                                   char *key, size_t key_length,
                                   char *value, size_t value_length,
                                   time_t expiration,
@@ -787,7 +787,7 @@ cdef class Client:
             self.log('[cmemcached]memcached_get: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
 
-        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND): 
+        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND):
             self.last_error = rc
 
         if c_val:
@@ -867,6 +867,8 @@ cdef class Client:
         cdef size_t bytes
         cdef PyThreadState *_save
 
+        # do not modify input parameter
+        keys = keys[:]
 
         nkeys = len(keys)
         ckeys = <char **>malloc(sizeof(char *) * nkeys)
