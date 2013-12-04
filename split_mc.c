@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "split_mc.h"
 
 memcached_return split_mc_set(struct memcached_st *mc, char *key, size_t key_len, void *val,
@@ -22,7 +23,7 @@ memcached_return split_mc_set(struct memcached_st *mc, char *key, size_t key_len
             return MEMCACHED_KEY_TOO_BIG;
         }
 		chunk_bytes = bytes > CHUNK_SIZE ? CHUNK_SIZE : bytes;
-		retval = memcached_set(mc, chunk_key, retval, val, chunk_bytes,
+		retval = memcached_set(mc, chunk_key, r, val, chunk_bytes,
 				expire, flags);
 		if (retval != MEMCACHED_SUCCESS && retval != MEMCACHED_TIMEOUT) {
 			return retval;
@@ -34,7 +35,7 @@ memcached_return split_mc_set(struct memcached_st *mc, char *key, size_t key_len
 	sprintf(chunk_key, "%d", i);  /* re-use chunk_key as value buffer */
 	retval = memcached_set(mc, key, key_len, chunk_key, strlen(chunk_key)+1,
 			expire, flags|FLAG_CHUNKED);
-
+    printf("to the split_mc_set end");
 	return retval;
 }
 
