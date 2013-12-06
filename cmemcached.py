@@ -6,14 +6,15 @@ from cmemcached_imp import *
 import cmemcached_imp
 import threading
 
-_FLAG_PICKLE = 1<<0
-_FLAG_INTEGER = 1<<1
-_FLAG_LONG = 1<<2
-_FLAG_BOOL = 1<<3
-_FLAG_COMPRESS = 1<<4
-_FLAG_MARSHAL = 1<<5
+_FLAG_PICKLE = 1 << 0
+_FLAG_INTEGER = 1 << 1
+_FLAG_LONG = 1 << 2
+_FLAG_BOOL = 1 << 3
+_FLAG_COMPRESS = 1 << 4
+_FLAG_MARSHAL = 1 << 5
 
-VERSION="0.41-greenify"
+VERSION = "0.41-greenify"
+
 
 def prepare(val, comp_threshold):
     val, flag = cmemcached_imp.prepare(val)
@@ -21,6 +22,7 @@ def prepare(val, comp_threshold):
         val = compress(val)
         flag |= _FLAG_COMPRESS
     return val, flag
+
 
 def restore(val, flag):
     if val is None:
@@ -35,10 +37,13 @@ def restore(val, flag):
 
     return cmemcached_imp.restore(val, flag)
 
+
 class ThreadUnsafe(Exception):
     pass
 
+
 class Client(cmemcached_imp.Client):
+
     "a wraper around cmemcached_imp"
 
     def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, logger=None, *a, **kw):
@@ -49,11 +54,11 @@ class Client(cmemcached_imp.Client):
         self.behaviors = dict(behaviors.items())
         self.add_server(servers)
 
-        self.set_behavior(BEHAVIOR_NO_BLOCK, 1) # nonblock
-        self.set_behavior(BEHAVIOR_TCP_NODELAY, 1) # nonblock
+        self.set_behavior(BEHAVIOR_NO_BLOCK, 1)  # nonblock
+        self.set_behavior(BEHAVIOR_TCP_NODELAY, 1)  # nonblock
         self.set_behavior(BEHAVIOR_TCP_KEEPALIVE, 1)
         self.set_behavior(BEHAVIOR_CACHE_LOOKUPS, 1)
-        #self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0) # no request buffer
+        # self.set_behavior(BEHAVIOR_BUFFER_REQUESTS, 0) # no request buffer
 
         #self.set_behavior(BEHAVIOR_KETAMA, 1)
         self.set_behavior(BEHAVIOR_HASH, HASH_MD5)
@@ -61,7 +66,7 @@ class Client(cmemcached_imp.Client):
         self.set_behavior(BEHAVIOR_DISTRIBUTION, DIST_CONSISTENT_KETAMA)
         self.set_behavior(BEHAVIOR_SUPPORT_CAS, 1)
 
-        for k,v in behaviors.items():
+        for k, v in behaviors.items():
             self.set_behavior(k, v)
 
         self._thread_ident = None
@@ -84,12 +89,12 @@ class Client(cmemcached_imp.Client):
         else:
             print >>sys.stderr, '[cmemcached]', 'serialize %s failed' % key
 
-    def set_multi(self, values, time=0, compress=True):
+    def set_multi(self, values, time=0, compress=True, return_failure=False):
         self._record_thread_ident()
         self._check_thread_ident()
         comp = compress and self.comp_threshold or 0
-        raw_values = dict((k, prepare(v, comp)) for k,v in values.iteritems())
-        return self.set_multi_raw(raw_values, time)
+        raw_values = dict((k, prepare(v, comp)) for k, v in values.iteritems())
+        return self.set_multi_raw(raw_values, time, return_failure=return_failure)
 
     def get(self, key):
         self._record_thread_ident()

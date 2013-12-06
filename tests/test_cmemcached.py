@@ -131,7 +131,7 @@ class TestCmemcached(unittest.TestCase):
         t = time.time()
         self.mc.append_multi(keys, data)
         t = time.time() - t
-        assert t < 1, 'should append 1w key in 1 secs %f' % t
+        assert t < 1, 'should append 10w key in 1 secs %f' % t
 
     def test_set_multi(self):
         values = dict(('key%s'%k,('value%s'%k)*100) for k in range(1000))
@@ -206,7 +206,7 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(value, False)
 
     def testEmptyString(self):
-        self.mc.set("str", '')
+        self.assertTrue(self.mc.set("str", ''))
         value = self.mc.get("str")
         self.assertEqual(value, '')
 
@@ -233,7 +233,7 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get("a"), v)
         raw, flags = self.mc.get_raw("a")
         self.assertEqual(raw, pickle.dumps(v, -1))
-    
+
     def test_no_pickle(self):
         v = NoPickle()
         self.assertEqual(self.mc.set("nopickle", v), None)
@@ -241,7 +241,9 @@ class TestCmemcached(unittest.TestCase):
 
     def test_big_list(self):
         v = range(1024*1024)
-        self.assertEqual(self.mc.set('big_list', v), 1)
+        r = self.mc.set('big_list', v)
+
+        self.assertEqual(r, True)
         self.assertEqual(self.mc.get('big_list'), v)
 
     def test_last_error(self):
@@ -332,13 +334,13 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get('test'), 1)
         self.assertEqual(self.mc.touch('test', -1), 1)
         self.assertEqual(self.mc.get('test'), None)
-        
+
         self.mc.set('test', 1)
         self.assertEqual(self.mc.get('test'), 1)
         self.assertEqual(self.mc.touch('test', 1), 1)
         time.sleep(1)
         self.assertEqual(self.mc.get('test'), None)
-    
+
     def test_ketama(self):
         mc = cmemcached.Client(['localhost', 'myhost:11211', '127.0.0.1:11212', 'myhost:11213'])
         #for i in range(10):
@@ -378,7 +380,7 @@ class TestCmemcached(unittest.TestCase):
 
 
 #class TestUnixSocketCmemcached(TestCmemcached):
-#    
+#
 #    def setUp(self):
 #        os.system('memcached -d -s %s' % TEST_UNIX_SOCKET)
 #        self.mc=cmemcached.Client([TEST_UNIX_SOCKET], comp_threshold=1024)
@@ -388,7 +390,7 @@ class TestCmemcached(unittest.TestCase):
 #        self.assertEqual(host, TEST_UNIX_SOCKET)
 #
 #    def test_stats(self):
-#        "not need"    
+#        "not need"
 
 class TestBinaryCmemcached(TestCmemcached):
 

@@ -291,7 +291,7 @@ cdef extern from "split_mc.h":
         CHUNK_SIZE
         _FLAG_CHUNKED "FLAG_CHUNKED"
 
-    int split_mc_set(memcached_st *mc, char *key, size_t key_len, void *val,
+    memcached_return split_mc_set(memcached_st *mc, char *key, size_t key_len, void *val,
         size_t bytes, time_t expire, uint32_t flags)
     char* split_mc_get(memcached_st *mc, char *key, size_t key_len,
         int count, size_t *bytes)
@@ -513,7 +513,7 @@ cdef class Client:
         cdef unsigned int hash
         PyString_AsStringAndSize(key, &c_key, &key_len)
         hash = memcached_generate_hash(self.mc, c_key, key_len)
-        if 0 <= hash < len(self.servers):
+        if hash < len(self.servers):
             return self.servers[hash]
 
     def get_last_error(self):
@@ -658,13 +658,12 @@ cdef class Client:
         cdef char *c_key, *c_val
         cdef uint32_t flags
         cdef memcached_return retval
-        cdef int retval_int
         cdef int i
         cdef PyThreadState *_save
 
         key = self._use_prefix(key)
         if self.check_key(key, prefixed=1) == 0:
-            return 0
+            return False
 
         flags=flags_py
         PyString_AsStringAndSize(key, &c_key, &key_len)
@@ -672,9 +671,9 @@ cdef class Client:
 
         if bytes > CHUNK_SIZE and self.do_split != 0:
             _save = PyEval_SaveThread()
-            retval_int = split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
+            retval = split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
             PyEval_RestoreThread(_save)
-            return (retval_int == 0)
+            return (retval == MEMCACHED_SUCCESS)
 
         _save = PyEval_SaveThread()
         retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
@@ -688,13 +687,14 @@ cdef class Client:
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
 
-    def set_multi_raw(self, values, time_t time=0):
+    def set_multi_raw(self, values, time_t time=0, return_failure=False):
         cdef Py_ssize_t key_len, bytes
         cdef char *c_key, *c_val
         cdef uint32_t flags
         cdef memcached_return retval
+        failed_keys = []
 
-        self.set_behavior(BEHAVIOR_NOREPLY, 1)
+        #self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key, (val, flags_py) in values.iteritems():
             key = self._use_prefix(key)
             if not self.check_key(key, prefixed=1):
@@ -703,11 +703,13 @@ cdef class Client:
             PyString_AsStringAndSize(key, &c_key, &key_len)
             PyString_AsStringAndSize(val, &c_val, &bytes)
             if bytes > CHUNK_SIZE and self.do_split != 0:
-                split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
+                retval = split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
             else:
                 retval = memcached_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
-        self.set_behavior(BEHAVIOR_NOREPLY, 0)
-        return retval == MEMCACHED_SUCCESS
+                if retval != MEMCACHED_SUCCESS:
+                        failed_keys.append(key)
+        #self.set_behavior(BEHAVIOR_NOREPLY, 0)
+        return (len(failed_keys) == 0, failed_keys) if return_failure else len(failed_keys) == 0
 
     def delete(self, key, time_t time=0):
         cdef Py_ssize_t key_len
@@ -726,22 +728,25 @@ cdef class Client:
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
 
-    def delete_multi(self, keys, time_t time=0):
+    def delete_multi(self, keys, time_t time=0, return_failure=False):
         "delete multi key with noreply"
         cdef Py_ssize_t key_len
         cdef char *c_key
         cdef memcached_return retval
+        failed_keys = []
 
-        self.set_behavior(BEHAVIOR_NOREPLY, 1)
+        #self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key in keys:
             key = self._use_prefix(key)
             PyString_AsStringAndSize(key, &c_key, &key_len)
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
             retval = memcached_delete(self.mc, c_key, key_len, time)
-        self.set_behavior(BEHAVIOR_NOREPLY, 0)
+            if retval != MEMCACHED_SUCCESS:
+                failed_keys.append(key)
+        #self.set_behavior(BEHAVIOR_NOREPLY, 0)
 
-        return retval == MEMCACHED_SUCCESS
+        return (len(failed_keys) == 0, failed_keys) if return_failure else len(failed_keys) == 0
 
     def touch(self, key, int exptime):
         cdef Py_ssize_t key_len
@@ -751,7 +756,7 @@ cdef class Client:
 
         key = self._use_prefix(key)
         if not self.check_key(key, prefixed=1):
-            return 0
+            return False
 
         PyString_AsStringAndSize(key, &c_key, &key_len)
         _save = PyEval_SaveThread()
