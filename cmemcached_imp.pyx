@@ -687,7 +687,7 @@ cdef class Client:
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED)
 
-    def set_multi_raw(self, values, time_t time=0, return_failure = False):
+    def set_multi_raw(self, values, time_t time=0, return_failure=False):
         cdef Py_ssize_t key_len, bytes
         cdef char *c_key, *c_val
         cdef uint32_t flags
@@ -728,7 +728,7 @@ cdef class Client:
 
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
 
-    def delete_multi(self, keys, time_t time=0, return_failure = False):
+    def delete_multi(self, keys, time_t time=0, return_failure=False):
         "delete multi key with noreply"
         cdef Py_ssize_t key_len
         cdef char *c_key

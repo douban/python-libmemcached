@@ -16,6 +16,7 @@ memcached_return split_mc_set(struct memcached_st *mc, char *key, size_t key_len
 char* split_mc_get(struct memcached_st *mc, char *key, size_t key_len,
 		int count, size_t *bytes);
 
+
 #ifdef __cplusplus
 }
 #endif
