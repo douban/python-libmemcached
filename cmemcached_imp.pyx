@@ -467,7 +467,7 @@ cdef class Client:
     cdef memcached_return    last_error
     cdef char* prefix
 
-    def __cinit__(self, *a, logger = None,**kw):
+    def __cinit__(self, *a, logger=None, **kw):
         """
         Create a new Client object with the given list of servers.
         """
@@ -577,6 +577,8 @@ cdef class Client:
         elif cmd == 'replace':
             retval = memcached_replace(self.mc, c_key, key_len, c_val, bytes, time, flags)
         elif cmd == 'cas':
+            if not self.get_behavior(BEHAVIOR_SUPPORT_CAS):
+                raise Exception('cas operator need cas_support flag setup')
             retval = memcached_cas(self.mc, c_key, key_len, c_val, bytes, time, flags, cas)
         elif cmd == 'append':
             retval = memcached_append(self.mc, c_key, key_len, c_val, bytes, time, flags)
@@ -673,6 +675,7 @@ cdef class Client:
             _save = PyEval_SaveThread()
             retval = split_mc_set(self.mc, c_key, key_len, c_val, bytes, time, flags)
             PyEval_RestoreThread(_save)
+            self.last_error = retval
             return (retval == MEMCACHED_SUCCESS)
 
         _save = PyEval_SaveThread()
@@ -682,6 +685,7 @@ cdef class Client:
         if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
+            self.last_error = retval
             self.log('[cmemcached]memcached_set: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
 
@@ -725,7 +729,7 @@ cdef class Client:
         _save = PyEval_SaveThread()
         retval = memcached_delete(self.mc, c_key, key_len, time)
         PyEval_RestoreThread(_save)
-
+        self.last_error = retval
         return retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND)
 
     def delete_multi(self, keys, time_t time=0, return_failure=False):
@@ -762,6 +766,7 @@ cdef class Client:
         _save = PyEval_SaveThread()
         retval = memcached_touch(self.mc, c_key, key_len, exptime)
         PyEval_RestoreThread(_save)
+        self.last_error = retval
 
         return retval == MEMCACHED_SUCCESS
 
@@ -792,8 +797,7 @@ cdef class Client:
             self.log('[cmemcached]memcached_get: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
 
-        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND):
-            self.last_error = rc
+        self.last_error = rc
 
         if c_val:
             if flags & _FLAG_CHUNKED:
@@ -808,6 +812,10 @@ cdef class Client:
         return val, flags
 
     def gets_raw(self, key):
+        """ get value and version for following cas operator
+            if the value is chunked in some keys, and return
+            the origin key's version.
+        """
         cdef char *c_key
         cdef Py_ssize_t key_len
         cdef uint32_t flags
@@ -819,6 +827,9 @@ cdef class Client:
         cdef PyThreadState *_save
         cdef memcached_result_st mc_result
         cdef memcached_result_st *mc_result_ptr
+
+        if not self.get_behavior(BEHAVIOR_SUPPORT_CAS):
+            raise Exception('gets operator need cas_support flag setup')
 
         self.last_error = MEMCACHED_SUCCESS
         key = self._use_prefix(key)
@@ -840,22 +851,27 @@ cdef class Client:
         mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
         if mc_result_ptr == NULL:
             #can not create mc_result
+            self.last_error = rc
             return None, 0, 0
         c_val = memcached_result_value(mc_result_ptr)
         flags = memcached_result_flags(mc_result_ptr)
         cas = memcached_result_cas(mc_result_ptr)
-        val = PyString_FromStringAndSize(c_val,
-                memcached_result_length(mc_result_ptr)
-                )
         memcached_result_free(mc_result_ptr)
         mc_result_ptr = memcached_fetch_result(self.mc, mc_result_ptr, &rc)
+        self.last_error = rc
         if mc_result_ptr== NULL:
+            if flags & _FLAG_CHUNKED:
+                val = _restore_splitted(self.mc, key, atoi(c_val))
+                flags = flags & (~_FLAG_CHUNKED)
+            else:
+                val = PyString_FromStringAndSize(c_val,
+                    memcached_result_length(mc_result_ptr)
+                    )
             return val, flags, cas
         else:
             memcached_result_free(mc_result_ptr)
             memcached_quit(self.mc)
             return None, 0, 0
-
 
     def get_multi_raw(self, keys):
         cdef char **ckeys
@@ -887,7 +903,6 @@ cdef class Client:
                 index = index + 1
 
         valid_nkeys = index
-
 
         _save = PyEval_SaveThread()
         rc = memcached_mget(self.mc, <const char * const*>ckeys, <const size_t *>ckey_lens, valid_nkeys)
@@ -950,6 +965,7 @@ cdef class Client:
         else:
             rc=memcached_decrement(self.mc, c_key, key_len, -val, &new_value)
         PyEval_RestoreThread(_save)
+        self.last_error = rc
 
         if rc != MEMCACHED_SUCCESS:
             return
