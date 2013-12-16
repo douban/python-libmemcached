@@ -13,6 +13,7 @@ TEST_UNIX_SOCKET = "/tmp/memcached.sock"
 
 memcached_process = None
 
+
 def setup():
     global memcached_process
     memcached_process = subprocess.Popen(['memcached'])
@@ -249,7 +250,7 @@ class TestCmemcached(unittest.TestCase):
     def test_last_error(self):
         self.assertEqual(self.mc.set('testkey', 'hh'), True)
         self.assertEqual(self.mc.get('testkey'), 'hh')
-        self.assertEqual(self.mc.get_last_error(), 0)
+        self.assertEqual(self.mc.get_last_error(), 16)
         self.assertEqual(self.mc.get('testkey1'), None)
         self.assertEqual(self.mc.get_last_error(), 0)
         self.assertEqual(self.mc.get_multi(['testkey']), {'testkey':'hh'})
