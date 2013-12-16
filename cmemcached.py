@@ -85,7 +85,6 @@ class Client(cmemcached_imp.Client):
         self._check_thread_ident()
         comp = compress and self.comp_threshold or 0
         val, flag = prepare(val, comp)
-        print >> sys.stderr, val, flag
         if val is not None:
             return self.set_raw(key, val, time, flag)
         else:
