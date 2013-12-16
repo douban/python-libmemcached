@@ -256,7 +256,7 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get_multi(['testkey']), {'testkey':'hh'})
         self.assertEqual(self.mc.get_last_error(), 0)
         self.assertEqual(self.mc.get_multi(['testkey1']), {})
-        self.assertEqual(self.mc.get_last_error(), 16)
+        self.assertEqual(self.mc.get_last_error(), 0)
 
 
         self.mc=cmemcached.Client(["localhost:11999"], comp_threshold=1024)
