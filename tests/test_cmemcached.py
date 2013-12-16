@@ -125,14 +125,14 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get_multi(keys), {})
 
     def test_append_multi_performance(self):
-        N = 100000
+        N = 600000
         K = "test_append_multi_%d"
         data = "after\n"
         keys = [K%i for i in range(N)]
         t = time.time()
         self.mc.append_multi(keys, data)
         t = time.time() - t
-        assert t < 1, 'should append 10w key in 1 secs %f' % t
+        assert t < 1, 'should append 6w key in 1 secs %f' % t
 
     def test_set_multi(self):
         values = dict(('key%s'%k,('value%s'%k)*100) for k in range(1000))
