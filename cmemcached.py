@@ -46,7 +46,7 @@ class Client(cmemcached_imp.Client):
 
     "a wraper around cmemcached_imp"
 
-    def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, logger=None, *a, **kw):
+    def __init__(self, servers, do_split=1, comp_threshold=0, behaviors={}, logger=None, cas_support=False, *a, **kw):
         cmemcached_imp.Client.__init__(self, logger)
         self.servers = servers
         self.do_split = do_split
@@ -64,7 +64,8 @@ class Client(cmemcached_imp.Client):
         self.set_behavior(BEHAVIOR_HASH, HASH_MD5)
         self.set_behavior(BEHAVIOR_KETAMA_HASH, HASH_MD5)
         self.set_behavior(BEHAVIOR_DISTRIBUTION, DIST_CONSISTENT_KETAMA)
-        self.set_behavior(BEHAVIOR_SUPPORT_CAS, 1)
+        if cas_support:
+            self.set_behavior(BEHAVIOR_SUPPORT_CAS, 1)
 
         for k, v in behaviors.items():
             self.set_behavior(k, v)

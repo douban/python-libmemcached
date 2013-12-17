@@ -13,6 +13,7 @@ TEST_UNIX_SOCKET = "/tmp/memcached.sock"
 
 memcached_process = None
 
+
 def setup():
     global memcached_process
     memcached_process = subprocess.Popen(['memcached'])
@@ -124,14 +125,14 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get_multi(keys), {})
 
     def test_append_multi_performance(self):
-        N = 100000
+        N = 70000
         K = "test_append_multi_%d"
         data = "after\n"
         keys = [K%i for i in range(N)]
         t = time.time()
         self.mc.append_multi(keys, data)
         t = time.time() - t
-        assert t < 1, 'should append 10w key in 1 secs %f' % t
+        assert t < 1, 'should append 7w key in 1 secs %f' % t
 
     def test_set_multi(self):
         values = dict(('key%s'%k,('value%s'%k)*100) for k in range(1000))
@@ -247,23 +248,24 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get('big_list'), v)
 
     def test_last_error(self):
+        from cmemcached import RETURN_MEMCACHED_SUCCESS, RETURN_MEMCACHED_NOTFOUND
         self.assertEqual(self.mc.set('testkey', 'hh'), True)
         self.assertEqual(self.mc.get('testkey'), 'hh')
-        self.assertEqual(self.mc.get_last_error(), 0)
+        self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
         self.assertEqual(self.mc.get('testkey1'), None)
-        self.assertEqual(self.mc.get_last_error(), 0)
+        self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_NOTFOUND)
         self.assertEqual(self.mc.get_multi(['testkey']), {'testkey':'hh'})
-        self.assertEqual(self.mc.get_last_error(), 0)
+        self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
         self.assertEqual(self.mc.get_multi(['testkey1']), {})
-        self.assertEqual(self.mc.get_last_error(), 0)
+        self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
 
 
         self.mc=cmemcached.Client(["localhost:11999"], comp_threshold=1024)
         self.assertEqual(self.mc.set('testkey', 'hh'), False)
         self.assertEqual(self.mc.get('testkey'), None)
-        self.assertNotEqual(self.mc.get_last_error(), 0)
+        self.assertNotEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
         self.assertEqual(self.mc.get_multi(['testkey']), {})
-        self.assertNotEqual(self.mc.get_last_error(), 0)
+        self.assertNotEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
 
     def test_stats(self):
         s = self.mc.stats()
@@ -294,7 +296,6 @@ class TestCmemcached(unittest.TestCase):
           "threads",
         ])
         self.assertEqual(sorted(st.keys()), st_keys)
-        
         mc=cmemcached.Client(["localhost:11999", TEST_SERVER])
         s = mc.stats()
         self.assertEqual(len(s), 2)
