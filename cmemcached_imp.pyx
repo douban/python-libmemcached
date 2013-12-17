@@ -736,6 +736,7 @@ cdef class Client:
         if retval not in (MEMCACHED_SUCCESS, MEMCACHED_NOTSTORED, MEMCACHED_STORED,
                 MEMCACHED_SERVER_TEMPORARILY_DISABLED,
                 MEMCACHED_SERVER_MARKED_DEAD, MEMCACHED_BUFFERED):
+            #temporary disable this error code above for smoothly upgrading
             self.last_error = retval
             self.log('[cmemcached]memcached_set: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, retval)))
@@ -848,7 +849,9 @@ cdef class Client:
             self.log('[cmemcached]memcached_get: server %s error: %s\n'
                     % (self.get_host_by_key(key), memcached_strerror(self.mc, rc)))
 
-        self.last_error = rc
+        #temporary disable MEMCACHED_NOTFOUND for smoothly upgrading
+        if NULL == c_val and rc not in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND):
+            self.last_error = rc
 
         if c_val:
             if flags & _FLAG_CHUNKED:
