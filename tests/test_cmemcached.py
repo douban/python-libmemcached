@@ -61,6 +61,10 @@ class TestCmemcached(unittest.TestCase):
         self.mc.set("key_big_object", big_object)
         self.assertEqual(self.mc.get("key_big_object"), big_object)
 
+    def test_set_get_none(self):
+        self.assertEqual(self.mc.set('key', None), True)
+        self.assertEqual(self.mc.get('key'), None)
+
     def test_chinese_set_get(self):
         key = '豆瓣'
         value = '在炎热的夏天我们无法停止上豆瓣'
