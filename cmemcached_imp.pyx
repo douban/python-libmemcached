@@ -584,6 +584,8 @@ cdef class Client:
     def get_behavior(self, unsigned int behavior):
         return memcached_behavior_get(self.mc, behavior)
 
+    def _preprocess_key(self, key):
+        return self._normalize_to_bytes(self._use_prefix(key))
 
     def _use_prefix(self, key):
         if self.prefix:
@@ -591,6 +593,11 @@ cdef class Client:
             key = self.prefix + (key[1:] if ask_exists else key)
             if ask_exists:
                 key = '?' + key
+        return key
+
+    def _normalize_to_bytes(self, key, encoding="utf-8"):
+        if isinstance(key, unicode):
+            key = key.encode(encoding)
         return key
 
     def _store(self, cmd, key, val, time_t time=0, cas=0, expected=(MEMCACHED_SUCCESS,)):
@@ -602,7 +609,7 @@ cdef class Client:
         cdef PyThreadState *_save
 
         # set prefix
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         PyString_AsStringAndSize(key, &c_key, &key_len)
 
         # memcached do not support the key whose length is bigger than MEMCACHED_MAX_KEY
@@ -669,7 +676,7 @@ cdef class Client:
 
         self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key in keys:
-            key = self._use_prefix(key)
+            key = self._preprocess_key(key)
             PyString_AsStringAndSize(key, &c_key, &key_len)
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
@@ -693,7 +700,7 @@ cdef class Client:
         cdef int i
 
         if self.prefix and not prefixed:
-            key = self._use_prefix(key)
+            key = self._preprocess_key(key)
         PyString_AsStringAndSize(key, &c_key, &key_len)
 
         if key_len >= MEMCACHED_MAX_KEY:
@@ -714,7 +721,7 @@ cdef class Client:
         cdef int i
         cdef PyThreadState *_save
 
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         if self.check_key(key, prefixed=1) == 0:
             return False
 
@@ -752,7 +759,7 @@ cdef class Client:
 
         #self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key, (val, flags_py) in values.iteritems():
-            key = self._use_prefix(key)
+            key = self._preprocess_key(key)
             if not self.check_key(key, prefixed=1):
                 continue
             flags=flags_py
@@ -773,7 +780,7 @@ cdef class Client:
         cdef memcached_return retval
         cdef PyThreadState *_save
 
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         if not self.check_key(key, prefixed=1):
             return 0
 
@@ -793,7 +800,7 @@ cdef class Client:
 
         #self.set_behavior(BEHAVIOR_NOREPLY, 1)
         for key in keys:
-            key = self._use_prefix(key)
+            key = self._preprocess_key(key)
             PyString_AsStringAndSize(key, &c_key, &key_len)
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
@@ -810,7 +817,7 @@ cdef class Client:
         cdef memcached_return retval
         cdef PyThreadState *_save
 
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         if not self.check_key(key, prefixed=1):
             return False
 
@@ -833,7 +840,7 @@ cdef class Client:
 
         self.last_error = MEMCACHED_SUCCESS
 
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         if not self.check_key(key, prefixed=1):
             return None, 0
 
@@ -886,7 +893,7 @@ cdef class Client:
             raise Exception('gets operator need cas_support flag setup')
 
         self.last_error = MEMCACHED_SUCCESS
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         if not self.check_key(key, prefixed=1):
             return None, 0, 0
 
@@ -951,7 +958,7 @@ cdef class Client:
 
         index = 0
         for i from 0 <= i < nkeys:
-            keys[i] = self._use_prefix(keys[i])
+            keys[i] = self._preprocess_key(keys[i])
             PyString_AsStringAndSize(keys[i], &(ckeys[index]), &(ckey_lens[index]))
             if ckey_lens[index] > 0 and ckey_lens[index] < MEMCACHED_MAX_KEY:
                 index = index + 1
@@ -1008,7 +1015,7 @@ cdef class Client:
         cdef memcached_return rc
         cdef PyThreadState *_save
 
-        key = self._use_prefix(key)
+        key = self._preprocess_key(key)
         PyString_AsStringAndSize(key, &c_key, &key_len)
         if key_len >= MEMCACHED_MAX_KEY:
             return
