@@ -1,4 +1,5 @@
 # -*- encoding:utf-8 -*-
+
 import cmemcached
 import unittest
 import cPickle as pickle
@@ -78,6 +79,33 @@ class TestCmemcached(unittest.TestCase):
         key='u:keke a kid'
         self.assertEqual(self.mc.set(key,value),0)
         self.assertEqual(self.mc.get(key),None)
+
+    def test_unicode_key(self):
+        key1 = u"answer"
+        key2 = u"答案"
+        bytes_key1 = "answer"
+        bytes_key2 = "答案"
+        value = 42
+
+        self.assertEqual(self.mc.set(key1, value), 1)
+        self.assertEqual(self.mc.get(key1), value)
+
+        self.assertEqual(self.mc.set(key2, value), 1)
+        self.assertEqual(self.mc.get(key2), value)
+
+        self.assertEqual(self.mc.incr(key2), value + 1)
+        self.assertEqual(self.mc.get(key2), value + 1)
+
+        self.assertEqual(self.mc.delete(key1), 1)
+        self.assertEqual(self.mc.get(key1), None)
+
+        self.assertEqual(self.mc.add(key1, value), 1)
+        self.assertEqual(self.mc.get(key1), value)
+        self.assertEqual(self.mc.add(key1, value), False)
+        self.assertEqual(self.mc.set(key1, value), 1)
+
+        self.assertEqual(self.mc.get(bytes_key1), self.mc.get(key1))
+        self.assertEqual(self.mc.get(bytes_key2), self.mc.get(key2))
 
     def test_add(self):
         key = 'test_add'
