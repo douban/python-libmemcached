@@ -4,3 +4,6 @@ cmemcached.pyc
 cmemcached_imp.so
 dist/*
 python_libmemcached.egg-info/*
+*.py[co]
+*.sw[po]
+venv/*
