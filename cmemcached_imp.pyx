@@ -322,12 +322,15 @@ cdef object _prepare(object val, uint32_t *flags):
 
     if isinstance(val, str):
         pass
-    elif isinstance(val, (bool)):
+    elif isinstance(val, bool):
         f = _FLAG_BOOL
         val = str(int(val))
-    elif isinstance(val, (int,long)):
+    elif isinstance(val, int):
         f = _FLAG_INTEGER
         val = str(val)
+    elif isinstance(val, long):
+        f = _FLAG_LONG
+        var = str(val)
     elif type(val) is unicode:
         val = marshal.dumps(val, 2)
         f = _FLAG_MARSHAL
