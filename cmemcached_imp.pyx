@@ -330,7 +330,7 @@ cdef object _prepare(object val, uint32_t *flags):
         val = str(val)
     elif isinstance(val, long):
         f = _FLAG_LONG
-        var = str(val)
+        val = str(val)
     elif type(val) is unicode:
         val = marshal.dumps(val, 2)
         f = _FLAG_MARSHAL
