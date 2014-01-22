@@ -703,7 +703,8 @@ cdef class Client:
         cdef int i
 
         if self.prefix and not prefixed:
-            key = self._preprocess_key(key)
+            key = self._use_prefix(key)
+        key = self._normalize_to_bytes(key)
         PyString_AsStringAndSize(key, &c_key, &key_len)
 
         if key_len >= MEMCACHED_MAX_KEY:
