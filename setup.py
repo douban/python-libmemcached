@@ -10,8 +10,6 @@ if 'setuptools.extension' in sys.modules:
     m = sys.modules['setuptools.extension']
     m.Extension.__dict__ = m._Extension.__dict__
 
-base_dir = '/Users/CMGS/Documents/Workplace/sources/test/greenify-test/'
-
 options = {}
 if os.environ.get('LIBRARY_DIRS'):
     options['library_dirs'] = [os.environ['LIBRARY_DIRS']]
