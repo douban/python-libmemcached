@@ -227,7 +227,7 @@ class TestCmemcached(unittest.TestCase):
         for x in xrange(3):
             self.mc.set(keys[x], values[x])
             self.assertEqual(self.mc.get(keys[x]), values[x])
-        invalid_keys = keys.append('hoho\r\n')
+        invalid_keys = keys + ['hoho\r\n']
         result = self.mc.get_multi(invalid_keys)
         for x in xrange(3):
             self.assertEqual(result[keys[x]], values[x])
