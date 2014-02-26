@@ -963,6 +963,8 @@ cdef class Client:
         index = 0
         for i from 0 <= i < nkeys:
             keys[i] = self._preprocess_key(keys[i])
+            if not self.check_key(keys[i], prefixed=1):
+                continue
             PyString_AsStringAndSize(keys[i], &(ckeys[index]), &(ckey_lens[index]))
             if ckey_lens[index] > 0 and ckey_lens[index] < MEMCACHED_MAX_KEY:
                 index = index + 1
