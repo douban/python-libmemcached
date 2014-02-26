@@ -221,6 +221,20 @@ class TestCmemcached(unittest.TestCase):
         for x in xrange(3):
             self.assertEqual(result[keys[x]], values[x])
 
+    def test_get_multi_invalid(self):
+        keys = ["hello1", "hello2", "hello3"]
+        values = ["vhello1", "vhello2", "vhello3"]
+        for x in xrange(3):
+            self.mc.set(keys[x], values[x])
+            self.assertEqual(self.mc.get(keys[x]), values[x])
+        invalid_keys = keys + ['hoho\r\n']
+        result = self.mc.get_multi(invalid_keys)
+        for x in xrange(3):
+            self.assertEqual(result[keys[x]], values[x])
+        result_new = self.mc.get_multi(keys)
+        for x in xrange(3):
+            self.assertEqual(result_new[keys[x]], values[x])
+
     def test_get_multi_big(self):
         keys = ["hello1", "hello2", "hello3"]
         values = [BigObject(str(i), 1000001) for i in xrange(3)]
