@@ -954,7 +954,7 @@ cdef class Client:
         cdef PyThreadState *_save
 
         # do not modify input parameter
-        keys = keys[:]
+        keys = list(keys)
 
         nkeys = len(keys)
         ckeys = <char **>malloc(sizeof(char *) * nkeys)
