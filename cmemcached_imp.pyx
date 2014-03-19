@@ -809,7 +809,7 @@ cdef class Client:
             if key_len >= MEMCACHED_MAX_KEY:
                 continue
             retval = memcached_delete(self.mc, c_key, key_len, time)
-            if retval != MEMCACHED_SUCCESS:
+            if not retval in (MEMCACHED_SUCCESS, MEMCACHED_NOTFOUND):
                 failed_keys.append(key)
         #self.set_behavior(BEHAVIOR_NOREPLY, 0)
 
