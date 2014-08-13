@@ -5,24 +5,15 @@ import unittest
 import cPickle as pickle
 import marshal
 import time
-import os
 import threading
-import subprocess
+import platform
+import pytest
 
-TEST_SERVER = "localhost"
-TEST_UNIX_SOCKET = "/tmp/memcached.sock"
+INVALID_SERVER_ADDR = '127.0.0.1:1'
 
-memcached_process = None
-
-
-def setup():
-    global memcached_process
-    memcached_process = subprocess.Popen(['memcached'])
-    time.sleep(0.5)
-
-
-def teardown():
-    memcached_process.terminate()
+skip_if_libmemcached_not_patched = pytest.mark.skipif(
+    "gentoo" not in platform.platform(),  # FIXME: better way to detect if patched?
+    reason="need to link with libmemcached with douban's patches")
 
 
 class BigObject(object):
@@ -42,8 +33,10 @@ class NoPickle(object):
 
 class TestCmemcached(unittest.TestCase):
 
-    def setUp(self):
-        self.mc = cmemcached.Client([TEST_SERVER], comp_threshold=1024)
+    @pytest.fixture(autouse=True)
+    def setup(self, memcached):
+        self.server_addr = memcached
+        self.mc = cmemcached.Client([memcached], comp_threshold=1024)
 
     def test_set_get(self):
         self.mc.set("key", "value")
@@ -179,8 +172,8 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.set_multi(values), 1)
         del values[' ']
         self.assertEqual(self.mc.get_multi(values.keys()), values)
-        #mc=cmemcached.Client(["localhost:11999"], comp_threshold=1024)
-        #self.assertEqual(mc.set_multi(values), 0)
+        # mc=cmemcached.Client(["localhost:11999"], comp_threshold=1024)
+        # self.assertEqual(mc.set_multi(values), 0)
 
     def test_append_large(self):
         k = 'test_append_large'
@@ -195,8 +188,8 @@ class TestCmemcached(unittest.TestCase):
         key = "Not_Exist"
         self.assertEqual(self.mc.incr(key), None)
         # key="incr:key1"
-        #self.mc.set(key, "not_numerical")
-        #self.assertEqual(self.mc.incr(key), 0)
+        # self.mc.set(key, "not_numerical")
+        # self.assertEqual(self.mc.incr(key), 0)
         key = "incr:key2"
         self.mc.set(key, 2007)
         self.assertEqual(self.mc.incr(key), 2008)
@@ -205,7 +198,7 @@ class TestCmemcached(unittest.TestCase):
         key = "Not_Exist"
         self.assertEqual(self.mc.decr(key), None)
         # key="decr:key1"
-        #self.mc.set(key, "not_numerical")
+        # self.mc.set(key, "not_numerical")
         # self.assertEqual(self.mc.decr(key),0)
         key = "decr:key2"
         self.mc.set(key, 2009)
@@ -245,6 +238,7 @@ class TestCmemcached(unittest.TestCase):
         for x in xrange(3):
             self.assertEqual(result[keys[x]], values[x])
 
+    @skip_if_libmemcached_not_patched
     def test_get_multi_with_empty_string(self):
         keys = ["hello1", "hello2", "hello3"]
         for k in keys:
@@ -259,6 +253,7 @@ class TestCmemcached(unittest.TestCase):
         value = self.mc.get("bool_")
         self.assertEqual(value, False)
 
+    @skip_if_libmemcached_not_patched
     def testEmptyString(self):
         self.assertTrue(self.mc.set("str", ''))
         value = self.mc.get("str")
@@ -266,7 +261,7 @@ class TestCmemcached(unittest.TestCase):
 
     def testGetHost(self):
         host = self.mc.get_host_by_key("str")
-        self.assertEqual(host, TEST_SERVER)
+        self.assertEqual(host, self.server_addr)
 
     def test_get_list(self):
         self.mc.set("a", 'a')
@@ -301,7 +296,7 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get('big_list'), v)
 
     def test_last_error(self):
-        from cmemcached import RETURN_MEMCACHED_SUCCESS, RETURN_MEMCACHED_NOTFOUND
+        from cmemcached import RETURN_MEMCACHED_SUCCESS
         self.assertEqual(self.mc.set('testkey', 'hh'), True)
         self.assertEqual(self.mc.get('testkey'), 'hh')
         self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
@@ -312,17 +307,17 @@ class TestCmemcached(unittest.TestCase):
         self.assertEqual(self.mc.get_multi(['testkey1']), {})
         self.assertEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
 
-        self.mc = cmemcached.Client(["localhost:11999"], comp_threshold=1024)
-        self.assertEqual(self.mc.set('testkey', 'hh'), False)
-        self.assertEqual(self.mc.get('testkey'), None)
-        self.assertNotEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
-        self.assertEqual(self.mc.get_multi(['testkey']), {})
-        self.assertNotEqual(self.mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
+        mc = cmemcached.Client([INVALID_SERVER_ADDR], comp_threshold=1024)
+        self.assertEqual(mc.set('testkey', 'hh'), False)
+        self.assertEqual(mc.get('testkey'), None)
+        self.assertNotEqual(mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
+        self.assertEqual(mc.get_multi(['testkey']), {})
+        self.assertNotEqual(mc.get_last_error(), RETURN_MEMCACHED_SUCCESS)
 
     def test_stats(self):
         s = self.mc.stats()
-        self.assertEqual(TEST_SERVER in s, True)
-        st = s[TEST_SERVER]
+        self.assertEqual(self.server_addr in s, True)
+        st = s[self.server_addr]
         st_keys = sorted([
             "pid",
             "uptime",
@@ -348,7 +343,7 @@ class TestCmemcached(unittest.TestCase):
             "threads",
         ])
         self.assertEqual(sorted(st.keys()), st_keys)
-        mc = cmemcached.Client(["localhost:11999", TEST_SERVER])
+        mc = cmemcached.Client([INVALID_SERVER_ADDR, self.server_addr])
         s = mc.stats()
         self.assertEqual(len(s), 2)
 
@@ -382,6 +377,7 @@ class TestCmemcached(unittest.TestCase):
         self.mc = pickle.loads(d)
         self.test_stats()
 
+    @skip_if_libmemcached_not_patched
     def test_touch(self):
         self.mc.set('test', 1)
         self.assertEqual(self.mc.get('test'), 1)
@@ -448,8 +444,10 @@ class TestCmemcached(unittest.TestCase):
 
 class TestBinaryCmemcached(TestCmemcached):
 
-    def setUp(self):
-        self.mc = cmemcached.Client([TEST_SERVER], comp_threshold=1024)
+    @pytest.fixture(autouse=True)
+    def setup(self, memcached):
+        super(TestBinaryCmemcached, self).setup(memcached)
+        self.mc = cmemcached.Client([self.server_addr], comp_threshold=1024)
         self.mc.set_behavior(cmemcached.BEHAVIOR_BINARY_PROTOCOL, 1)
 
     def test_append_multi_performance(self):
@@ -464,8 +462,10 @@ class TestBinaryCmemcached(TestCmemcached):
 
 class TestPrefix(TestCmemcached):
 
-    def setUp(self):
-        self.mc = cmemcached.Client([TEST_SERVER], comp_threshold=1024,
+    @pytest.fixture(autouse=True)
+    def setup(self, memcached):
+        super(TestPrefix, self).setup(memcached)
+        self.mc = cmemcached.Client([self.server_addr], comp_threshold=1024,
                                     prefix='/prefix')
 
 
