@@ -1,0 +1,27 @@
+- job:
+    name: unittest
+    description: "http://code.dapps.douban.com/python-libmemcached"
+    scm:
+      - git:
+        branches:
+          - master
+        skip-tag: True
+        url: http://code.dapps.douban.com/python-libmemcached.git
+    triggers:
+      - pollscm: '* * * * *'
+    builders:
+      - shell: |
+            rm -rf VENV
+            virtualenv VENV || true
+            source VENV/bin/activate
+            pip install -i http://pypim.dapps.douban.com/simple -r requirements.txt
+            python setup.py install
+            pip install -i http://pypim.dapps.douban.com/simple pytest mock
+            hash -r
+            py.test
+            deactivate
+    publishers:
+      - junit:
+          results: unittest.xml
+      - email:
+          recipients: hongqn@douban.com
