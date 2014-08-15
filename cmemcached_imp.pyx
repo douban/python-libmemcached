@@ -518,10 +518,11 @@ cdef void close_all_mc():
 cdef class Client:
     cdef memcached_st *mc
     cdef object servers
-    cdef memcached_return    last_error
+    cdef memcached_return last_error
     cdef char* prefix
+    cdef object log
 
-    def __cinit__(self, *a, logger=None, **kw):
+    def __cinit__(self, *a, **kw):
         """
         Create a new Client object with the given list of servers.
         """
@@ -531,7 +532,7 @@ cdef class Client:
         if not self.mc:
             raise MemoryError
         self.servers = []
-        self.log = logger if logger else lambda x : None
+        self.log = kw.pop('logger', lambda x: None)
 
         #if not __mc_instances:
         #    pthread_atfork(close_all_mc, NULL, NULL)
