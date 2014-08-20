@@ -519,8 +519,10 @@ cdef class Client:
     cdef memcached_st *mc
     cdef object servers
     cdef memcached_return last_error
+    cdef object __prefix
     cdef char* prefix
     cdef object log
+    cdef object __weakref__
 
     def __cinit__(self, *a, **kw):
         """
@@ -534,8 +536,6 @@ cdef class Client:
         self.servers = []
         self.log = kw.pop('logger', lambda x: None)
 
-        #if not __mc_instances:
-        #    pthread_atfork(close_all_mc, NULL, NULL)
         __mc_instances.append(weakref.ref(self))
 
     def add_server(self, addrs):
