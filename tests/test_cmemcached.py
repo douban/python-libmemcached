@@ -163,7 +163,7 @@ class TestCmemcached(unittest.TestCase):
         t = time.time()
         self.mc.append_multi(keys, data)
         t = time.time() - t
-        assert t < 1, 'should append 7w key in 1 secs %f' % t
+        assert t < 1.5, 'should append 7w key in 1.5 secs, actual val: %f' % t
 
     def test_set_multi(self):
         values = dict(('key%s' % k, ('value%s' % k) * 100)
