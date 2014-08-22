@@ -18,7 +18,7 @@
             python setup.py install
             pip install -i http://pypim.dapps.douban.com/simple pytest mock
             hash -r
-            py.test tests
+            py.test tests --junitxml unittest.xml
             deactivate
     publishers:
       - junit:
