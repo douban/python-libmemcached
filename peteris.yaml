@@ -3,10 +3,10 @@
     description: "http://code.dapps.douban.com/python-libmemcached"
     scm:
       - git:
-        branches:
-          - master
-        skip-tag: True
-        url: http://code.dapps.douban.com/python-libmemcached.git
+          branches: 
+            - master
+          skip-tag: True
+          url: http://code.dapps.douban.com/python-libmemcached.git
     triggers:
       - pollscm: '* * * * *'
     builders:
