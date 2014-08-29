@@ -465,8 +465,16 @@ class TestPrefix(TestCmemcached):
     @pytest.fixture(autouse=True)
     def setup(self, memcached):
         super(TestPrefix, self).setup(memcached)
+        self.prefix = '/prefix'
         self.mc = cmemcached.Client([self.server_addr], comp_threshold=1024,
-                                    prefix='/prefix')
+                                    prefix=self.prefix)
+
+    def test_duplicate_prefix_text(self):
+        for case in ['%sforever/young', 'forever%s/young', 'forever/young/%s']:
+            nasty_key = case % self.prefix
+            self.mc.set(nasty_key, 1)
+            self.assertEqual(self.mc.get(nasty_key), 1)
+            self.assertEqual(self.mc.get_multi([nasty_key]), {nasty_key: 1})
 
 
 if __name__ == '__main__':
