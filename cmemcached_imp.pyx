@@ -1011,7 +1011,7 @@ cdef class Client:
         free(ckey_lens)
 
         if self.prefix:
-            result = dict([(key.replace(self.prefix, ''), value)
+            result = dict([(key.replace(self.prefix, '', 1), value)
                      for key, value in result.iteritems()])
         return result
 
