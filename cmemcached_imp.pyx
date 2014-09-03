@@ -1066,9 +1066,9 @@ cdef class Client:
             st['curr_items'] = stat[i].curr_items
             st['total_items'] = stat[i].total_items
 
-            st['curr_connections'] = stat[i].pid
-            st['total_connections'] = stat[i].pid
-            st['connection_structures'] = stat[i].pid
+            st['curr_connections'] = stat[i].curr_connections
+            st['total_connections'] = stat[i].total_connections
+            st['connection_structures'] = stat[i].connection_structures
 
             st['cmd_get'] = stat[i].cmd_get
             st['cmd_set'] = stat[i].cmd_set
