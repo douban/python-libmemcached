@@ -393,9 +393,6 @@ class TestCmemcached(unittest.TestCase):
     def test_ketama(self):
         mc = cmemcached.Client(
             ['localhost', 'myhost:11211', '127.0.0.1:11212', 'myhost:11213'])
-        # for i in range(10):
-        #    k = 'test:%d' % (i*10000)
-        #    print """'%s': '%s',""" % (k, mc.get_host_by_key(k))
         rs = {
             'test:10000': 'localhost',
             'test:20000': '127.0.0.1:11212',
@@ -475,6 +472,26 @@ class TestPrefix(TestCmemcached):
             self.mc.set(nasty_key, 1)
             self.assertEqual(self.mc.get(nasty_key), 1)
             self.assertEqual(self.mc.get_multi([nasty_key]), {nasty_key: 1})
+
+    def test_get_host_by_key(self):
+        mc = cmemcached.Client(
+            ['localhost', 'myhost:11211', '127.0.0.1:11212', 'myhost:11213'],
+            prefix=self.prefix
+        )
+        rs = {
+            'test:10000': '127.0.0.1:11212',
+            'test:20000': 'localhost',
+            'test:30000': 'myhost:11213',
+            'test:40000': 'myhost:11211',
+            'test:50000': 'myhost:11213',
+            'test:60000': 'myhost:11213',
+            'test:70000': 'localhost',
+            'test:80000': 'myhost:11213',
+            'test:90000': 'myhost:11213',
+        }
+        for k in rs:
+            print k
+            self.assertEqual(mc.get_host_by_key(k), rs[k])
 
 
 if __name__ == '__main__':

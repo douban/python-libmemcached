@@ -563,6 +563,9 @@ cdef class Client:
         self.servers += addrs
 
     def get_host_by_key(self, key):
+        key = self._preprocess_key(key)
+        if not self.check_key(key, prefixed=1):
+            return None
         cdef char *c_key
         cdef Py_ssize_t key_len
         cdef unsigned int hash
