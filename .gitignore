@@ -7,3 +7,5 @@ python_libmemcached.egg-info/*
 *.py[co]
 *.sw[po]
 venv/*
+*.eggs
+*.egg
